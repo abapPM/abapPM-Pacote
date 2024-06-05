@@ -102,9 +102,9 @@ INTERFACE zif_pacote PUBLIC.
 
   METHODS tarball
     IMPORTING
-      iv_version    TYPE string
+      iv_filename   TYPE string
     RETURNING
-      VALUE(result) TYPE string
+      VALUE(result) TYPE xstring
     RAISING
       zcx_pacote.
 

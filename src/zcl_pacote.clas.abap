@@ -17,6 +17,7 @@ CLASS zcl_pacote DEFINITION
 
     CLASS-METHODS factory
       IMPORTING
+        !iv_registry  TYPE string
         !iv_name      TYPE string
         !iv_packument TYPE string OPTIONAL
       RETURNING
@@ -31,6 +32,7 @@ CLASS zcl_pacote DEFINITION
 
     METHODS constructor
       IMPORTING
+        !iv_registry  TYPE string
         !iv_name      TYPE string
         !iv_packument TYPE string OPTIONAL
       RAISING
@@ -89,6 +91,12 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD constructor.
 
+    IF iv_registry <> 'https://registry.abappm.com'.
+      zcx_pacote=>raise( 'Only works with registry.abappm.com' ).
+    ENDIF.
+
+    mv_registry = iv_registry.
+
     ms_pacote-key       = get_packument_key( iv_name ).
     ms_pacote-name      = escape(
                             val    = iv_name
@@ -115,6 +123,7 @@ CLASS zcl_pacote IMPLEMENTATION.
     ELSE.
       CREATE OBJECT result TYPE zcl_pacote
         EXPORTING
+          iv_registry  = iv_registry
           iv_name      = iv_name
           iv_packument = iv_packument.
 
@@ -128,9 +137,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD get_agent.
 
-    IF iv_url NS 'abappm.com'.
-      zcx_abapgit_exception=>raise( 'Only works with registry.abappm.com' ).
-    ENDIF.
+    DATA lv_url TYPE string.
 
     result = zcl_abapgit_factory=>get_http_agent( ).
 
@@ -144,11 +151,14 @@ CLASS zcl_pacote IMPLEMENTATION.
       iv_val = 'application/json' ).
     ENDIF.
 
+    " Login manager requires git-like url so we add some dummy repo
+    lv_url = iv_url && '/apm/apm.git'.
+
     " Get auth token from repo
-    IF zcl_abapgit_login_manager=>get( iv_url ) IS NOT INITIAL.
+    IF zcl_abapgit_login_manager=>get( lv_url ) IS NOT INITIAL.
       result->global_headers( )->set(
         iv_key = 'Authorization'
-        iv_val = zcl_abapgit_login_manager=>get( iv_url ) ).
+        iv_val = zcl_abapgit_login_manager=>get( lv_url ) ).
     ENDIF.
 
   ENDMETHOD.
@@ -241,7 +251,7 @@ CLASS zcl_pacote IMPLEMENTATION.
     TRY.
         result = get_agent(
           iv_url         = mv_registry
-          iv_abbreviated = iv_abbreviated )->request( |/{ ms_pacote-name }/{ iv_version }| )->cdata( ).
+          iv_abbreviated = iv_abbreviated )->request( |{ mv_registry }/{ ms_pacote-name }/{ iv_version }| )->cdata( ).
 
       CATCH zcx_abapgit_exception INTO lx_error.
         zcx_pacote=>raise_with_text( lx_error ).
@@ -255,7 +265,7 @@ CLASS zcl_pacote IMPLEMENTATION.
     DATA lx_error TYPE REF TO zcx_abapgit_exception.
 
     TRY.
-        result = get_agent( mv_registry )->request( |/{ ms_pacote-name }| )->cdata( ).
+        result = get_agent( mv_registry )->request( |{ mv_registry }/{ ms_pacote-name }| )->cdata( ).
         ms_pacote-packument = result.
       CATCH zcx_abapgit_exception INTO lx_error.
         zcx_pacote=>raise_with_text( lx_error ).
@@ -287,12 +297,10 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD zif_pacote~tarball.
 
-    DATA:
-      lv_filename TYPE string,
-      lx_error    TYPE REF TO zcx_abapgit_exception.
+    DATA lx_error TYPE REF TO zcx_abapgit_exception.
 
     TRY.
-        result = get_agent( mv_registry )->request( |/{ ms_pacote-name }/-/{ lv_filename }| )->cdata( ).
+        result = get_agent( mv_registry )->request( |{ mv_registry }/{ ms_pacote-name }/-/{ iv_filename }| )->data( ).
 
       CATCH zcx_abapgit_exception INTO lx_error.
         zcx_pacote=>raise_with_text( lx_error ).
