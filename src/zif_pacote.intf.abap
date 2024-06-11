@@ -12,7 +12,7 @@ INTERFACE zif_pacote PUBLIC.
   TYPES:
     BEGIN OF ty_version,
       key     TYPE string,
-      version TYPE zif_package_json_types=>ty_package_json,
+      version TYPE zif_package_json_types=>ty_manifest,
     END OF ty_version.
 
   TYPES:
@@ -66,7 +66,7 @@ INTERFACE zif_pacote PUBLIC.
     RETURNING
       VALUE(result) TYPE REF TO zif_pacote
     RAISING
-      zcx_pacote.
+      zcx_error.
 
   METHODS exists
     RETURNING
@@ -76,15 +76,15 @@ INTERFACE zif_pacote PUBLIC.
     RETURNING
       VALUE(result) TYPE REF TO zif_pacote
     RAISING
-      zcx_pacote.
+      zcx_error.
 
   METHODS save
     RAISING
-      zcx_pacote.
+      zcx_error.
 
   METHODS delete
     RAISING
-      zcx_pacote.
+      zcx_error.
 
   METHODS manifest
     IMPORTING
@@ -93,13 +93,13 @@ INTERFACE zif_pacote PUBLIC.
     RETURNING
       VALUE(result)  TYPE string
     RAISING
-      zcx_pacote.
+      zcx_error.
 
   METHODS packument
     RETURNING
       VALUE(result) TYPE string
     RAISING
-      zcx_pacote.
+      zcx_error.
 
   METHODS tarball
     IMPORTING
@@ -107,6 +107,6 @@ INTERFACE zif_pacote PUBLIC.
     RETURNING
       VALUE(result) TYPE xstring
     RAISING
-      zcx_pacote.
+      zcx_error.
 
 ENDINTERFACE.
