@@ -21,39 +21,35 @@ SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME.
     p_reg TYPE string LOWER CASE OBLIGATORY DEFAULT 'https://playground.abappm.com'.
 SELECTION-SCREEN END OF BLOCK b2.
 
-DATA:
-  gx_error     TYPE REF TO cx_root,
-  gi_pacote    TYPE REF TO zif_pacote,
-  gs_packument TYPE zif_pacote=>ty_packument,
-  gv_result    TYPE string,
-  gv_tarball   TYPE xstring.
+DATA result TYPE string.
 
 START-OF-SELECTION.
 
   TRY.
-      gi_pacote = zcl_pacote=>factory(
-        iv_registry = p_reg
-        iv_name     = p_name ).
+      DATA(pacote) = zcl_pacote=>factory(
+        registry = p_reg
+        name     = p_name ).
 
       CASE abap_true.
         WHEN p_pack.
-          gv_result = gi_pacote->packument( ).
-          gs_packument = gi_pacote->get( ).
+          result = pacote->packument( ).
+
+          DATA(packument) = pacote->get( ).
         WHEN p_mani.
-          gv_result = gi_pacote->manifest( p_vers ).
+          result = pacote->manifest( p_vers ).
         WHEN p_abbr.
-          gv_result = gi_pacote->manifest(
-                        iv_version     = p_vers
-                        iv_abbreviated = abap_true ).
+          result = pacote->manifest(
+            version     = p_vers
+            abbreviated = abap_true ).
         WHEN p_tgz.
-          gv_tarball = gi_pacote->tarball( p_vers ).
+          DATA(tarball) = pacote->tarball( p_vers ).
       ENDCASE.
-    CATCH cx_root INTO gx_error.
-      cl_abap_browser=>show_html( html_string = gx_error->get_text( ) ).
+    CATCH cx_root INTO DATA(error).
+      cl_abap_browser=>show_html( html_string = error->get_text( ) ).
   ENDTRY.
 
-  IF gv_result IS NOT INITIAL.
-    cl_abap_browser=>show_html( html_string = gv_result ).
-  ELSEIF gv_tarball IS NOT INITIAL.
+  IF result IS NOT INITIAL.
+    cl_abap_browser=>show_html( html_string = result ).
+  ELSEIF tarball IS NOT INITIAL.
     BREAK-POINT.
   ENDIF.

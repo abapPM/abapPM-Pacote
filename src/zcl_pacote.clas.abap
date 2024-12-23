@@ -17,9 +17,9 @@ CLASS zcl_pacote DEFINITION
 
     CLASS-METHODS factory
       IMPORTING
-        !iv_registry  TYPE string
-        !iv_name      TYPE string
-        !iv_packument TYPE string OPTIONAL
+        !registry     TYPE string
+        !name         TYPE string
+        !packument    TYPE string OPTIONAL
       RETURNING
         VALUE(result) TYPE REF TO zif_pacote
       RAISING
@@ -27,28 +27,44 @@ CLASS zcl_pacote DEFINITION
 
     CLASS-METHODS injector
       IMPORTING
-        !iv_name TYPE string
-        !ii_mock TYPE REF TO zif_pacote.
+        !name TYPE string
+        !mock TYPE REF TO zif_pacote.
 
     METHODS constructor
       IMPORTING
-        !iv_registry  TYPE string
-        !iv_name      TYPE string
-        !iv_packument TYPE string OPTIONAL
+        !registry  TYPE string
+        !name      TYPE string
+        !packument TYPE string OPTIONAL
       RAISING
         zcx_error.
 
     CLASS-METHODS get_packument_key
       IMPORTING
-        !iv_name      TYPE string
+        !name         TYPE string
       RETURNING
         VALUE(result) TYPE zif_persist_apm=>ty_key.
 
     CLASS-METHODS get_packument_from_key
       IMPORTING
-        !iv_key       TYPE zif_persist_apm=>ty_key
+        !key          TYPE zif_persist_apm=>ty_key
       RETURNING
         VALUE(result) TYPE string.
+
+    CLASS-METHODS convert_json_to_packument
+      IMPORTING
+        !json         TYPE string
+      RETURNING
+        VALUE(result) TYPE zif_types=>ty_packument
+      RAISING
+        zcx_error.
+
+    CLASS-METHODS convert_packument_to_json
+      IMPORTING
+        !packument    TYPE zif_types=>ty_packument
+      RETURNING
+        VALUE(result) TYPE string
+      RAISING
+        zcx_error.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -61,58 +77,42 @@ CLASS zcl_pacote DEFINITION
       ty_instances TYPE HASHED TABLE OF ty_instance WITH UNIQUE KEY name.
 
     CLASS-DATA:
-      gi_persist   TYPE REF TO zif_persist_apm,
-      gt_instances TYPE ty_instances.
+      db_persist TYPE REF TO zif_persist_apm,
+      instances  TYPE ty_instances.
 
     DATA:
-      mv_registry TYPE string,
-      ms_pacote   TYPE zif_pacote=>ty_pacote.
+      registry TYPE string,
+      pacote   TYPE zif_pacote=>ty_pacote.
 
     METHODS get_agent
       IMPORTING
-        !iv_url         TYPE string
-        !iv_abbreviated TYPE abap_bool DEFAULT abap_false
+        !url          TYPE string
+        !abbreviated  TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(result)   TYPE REF TO zif_http_agent
+        VALUE(result) TYPE REF TO zif_http_agent
       RAISING
         zcx_error.
 
     METHODS request
       IMPORTING
-        !iv_url         TYPE string
-        !iv_abbreviated TYPE abap_bool DEFAULT abap_false
+        !url          TYPE string
+        !abbreviated  TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(result)   TYPE REF TO zif_http_response
+        VALUE(result) TYPE REF TO zif_http_response
       RAISING
         zcx_error.
 
     METHODS check_result
       IMPORTING
-        !iv_json TYPE string
-      RAISING
-        zcx_error.
-
-    CLASS-METHODS convert_json_to_packument
-      IMPORTING
-        !iv_json      TYPE string
-      RETURNING
-        VALUE(result) TYPE zif_pacote=>ty_packument
-      RAISING
-        zcx_error.
-
-    CLASS-METHODS convert_packument_to_json
-      IMPORTING
-        !is_packument TYPE zif_pacote=>ty_packument
-      RETURNING
-        VALUE(result) TYPE string
+        !json TYPE string
       RAISING
         zcx_error.
 
     CLASS-METHODS sort_packument
       IMPORTING
-        !is_packument TYPE zif_pacote=>ty_packument
+        !packument    TYPE zif_types=>ty_packument
       RETURNING
-        VALUE(result) TYPE zif_pacote=>ty_packument
+        VALUE(result) TYPE zif_types=>ty_packument
       RAISING
         zcx_error.
 
@@ -125,44 +125,40 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD check_result.
 
-    DATA:
-      lv_error TYPE string,
-      lx_error TYPE REF TO zcx_ajson_error.
-
     TRY.
-        lv_error = zcl_ajson=>parse( iv_json )->get_string( '/error' ).
-      CATCH zcx_ajson_error INTO lx_error.
-        zcx_error=>raise_with_text( lx_error ).
+        DATA(error_message) = zcl_ajson=>parse( json )->get_string( '/error' ).
+      CATCH zcx_ajson_error INTO DATA(error).
+        zcx_error=>raise_with_text( error ).
     ENDTRY.
 
-    IF lv_error IS NOT INITIAL.
-      zcx_error=>raise( lv_error ).
+    IF error_message IS NOT INITIAL.
+      zcx_error=>raise( error_message ).
     ENDIF.
 
   ENDMETHOD.
 
 
   METHOD class_constructor.
-    gi_persist = zcl_persist_apm=>get_instance( ).
+    db_persist = zcl_persist_apm=>get_instance( ).
   ENDMETHOD.
 
 
   METHOD constructor.
 
-*    IF iv_registry NP 'https://*.abappm.com'.
-*      zcx_error=>raise( 'Only works with abappm.com' ).
-*    ENDIF.
+    IF registry <> 'https://playground.abappm.com'.
+      zcx_error=>raise( 'apm only works with playground.abappm.com. Stay tuned for offical registry :-)' ).
+    ENDIF.
 
-    mv_registry = iv_registry.
+    me->registry = registry.
 
-    ms_pacote-key            = get_packument_key( iv_name ).
-    ms_pacote-name           = escape(
-                                 val    = iv_name
-                                 format = cl_abap_format=>e_url_full ).
+    pacote-key  = get_packument_key( name ).
+    pacote-name = escape(
+      val    = name
+      format = cl_abap_format=>e_url_full ).
 
-    IF iv_packument IS NOT INITIAL.
-      ms_pacote-json      = iv_packument.
-      ms_pacote-packument = convert_json_to_packument( ms_pacote-json ).
+    IF packument IS NOT INITIAL.
+      pacote-json      = packument.
+      pacote-packument = convert_json_to_packument( pacote-json ).
     ELSE.
       TRY.
           zif_pacote~load( ).
@@ -183,15 +179,15 @@ CLASS zcl_pacote IMPLEMENTATION.
         readme      TYPE string,
         homepage    TYPE string,
         BEGIN OF bugs,
-          url   TYPE zif_package_json_types=>ty_uri,
-          email TYPE zif_package_json_types=>ty_email,
+          url   TYPE zif_types=>ty_uri,
+          email TYPE zif_types=>ty_email,
         END OF bugs,
         license     TYPE string,
         keywords    TYPE string_table,
-        author      TYPE zif_package_json_types=>ty_person,
+        author      TYPE zif_types=>ty_person,
         BEGIN OF repository,
           type      TYPE string,
-          url       TYPE zif_package_json_types=>ty_uri,
+          url       TYPE zif_types=>ty_uri,
           directory TYPE string,
         END OF repository,
         _id         TYPE string,
@@ -200,73 +196,68 @@ CLASS zcl_pacote IMPLEMENTATION.
       END OF ty_packument_partial.
 
     DATA:
-      li_json         TYPE REF TO zif_ajson,
-      li_version      TYPE REF TO zif_ajson,
-      ls_json_partial TYPE ty_packument_partial,
-      lv_key          TYPE string,
-      ls_generic      TYPE zif_package_json_types=>ty_generic,
-      ls_time         TYPE zif_package_json_types=>ty_time,
-      ls_person       TYPE zif_package_json_types=>ty_person,
-      ls_user         TYPE zif_package_json_types=>ty_user,
-      ls_package_json TYPE zif_package_json_types=>ty_package_json,
-      ls_version      TYPE zif_pacote=>ty_version,
-      ls_attachment   TYPE zif_pacote=>ty_attachment,
-      ls_json         TYPE zif_pacote=>ty_packument,
-      lx_error        TYPE REF TO zcx_ajson_error.
+      json_partial TYPE ty_packument_partial,
+      generic      TYPE zif_types=>ty_generic,
+      time         TYPE zif_types=>ty_time,
+      person       TYPE zif_types=>ty_person,
+      user         TYPE zif_types=>ty_user,
+      package_json TYPE zif_types=>ty_package_json,
+      version      TYPE zif_types=>ty_version,
+      attachment   TYPE zif_types=>ty_attachment,
+      packument    TYPE zif_types=>ty_packument.
 
     TRY.
-        li_json = zcl_ajson=>parse( iv_json ).
-        li_json->to_abap(
-          EXPORTING
-            iv_corresponding = abap_true
-          IMPORTING
-            ev_container     = ls_json_partial ).
+        DATA(ajson) = zcl_ajson=>parse( json
+          )->map( zcl_ajson_mapping=>create_to_snake_case( )
+          )->to_abap_corresponding_only( ).
 
-        MOVE-CORRESPONDING ls_json_partial TO ls_json.
+        ajson->to_abap( IMPORTING ev_container = json_partial ).
+
+        MOVE-CORRESPONDING json_partial TO packument.
 
         " Transpose dist-tags, times, users, versions...
-        LOOP AT li_json->members( '/dist-tags' ) INTO ls_generic-key.
-          ls_generic-value = li_json->get( '/dist-tags/' && ls_generic-key ).
-          INSERT ls_generic INTO TABLE ls_json-dist_tags.
+        LOOP AT ajson->members( '/dist-tags' ) INTO generic-key.
+          generic-value = ajson->get( '/dist-tags/' && generic-key ).
+          INSERT generic INTO TABLE packument-dist_tags.
         ENDLOOP.
 
-        LOOP AT li_json->members( '/time' ) INTO ls_time-key.
-          ls_time-timestamp = li_json->get_timestamp( '/time/' && ls_time-key ).
-          INSERT ls_time INTO TABLE ls_json-time.
+        LOOP AT ajson->members( '/time' ) INTO time-key.
+          time-timestamp = ajson->get_timestamp( '/time/' && time-key ).
+          INSERT time INTO TABLE packument-time.
         ENDLOOP.
 
-        LOOP AT li_json->members( '/maintainers' ) INTO lv_key.
-          ls_person-name   = li_json->get( '/maintainers/' && lv_key && '/name' ).
-          ls_person-email  = li_json->get( '/maintainers/' && lv_key && '/email' ).
-          ls_person-url    = li_json->get( '/maintainers/' && lv_key && '/url' ).
-          ls_person-avatar = li_json->get( '/maintainers/' && lv_key && '/avatar' ).
-          INSERT ls_person INTO TABLE ls_json-maintainers.
+        LOOP AT ajson->members( '/maintainers' ) INTO DATA(key).
+          person-name   = ajson->get( '/maintainers/' && key && '/name' ).
+          person-email  = ajson->get( '/maintainers/' && key && '/email' ).
+          person-url    = ajson->get( '/maintainers/' && key && '/url' ).
+          person-avatar = ajson->get( '/maintainers/' && key && '/avatar' ).
+          INSERT person INTO TABLE packument-maintainers.
         ENDLOOP.
 
-        LOOP AT li_json->members( '/users' ) INTO ls_user-name.
-          ls_user-value = li_json->get( '/users/' && ls_user-name ).
-          INSERT ls_user INTO TABLE ls_json-users.
+        LOOP AT ajson->members( '/users' ) INTO user-name.
+          user-value = ajson->get( '/users/' && user-name ).
+          INSERT user INTO TABLE packument-users.
         ENDLOOP.
 
-        LOOP AT li_json->members( '/_attachments' ) INTO ls_attachment-key.
-          ls_attachment-tarball-content_type = li_json->get( '/_attachments/' && ls_attachment-key && '/content_type' ).
-          ls_attachment-tarball-data         = li_json->get( '/_attachments/' && ls_attachment-key && '/data' ).
-          ls_attachment-tarball-length       = li_json->get_integer( '/_attachments/' && ls_attachment-key && '/length' ).
-          INSERT ls_user INTO TABLE ls_json-users.
+        LOOP AT ajson->members( '/_attachments' ) INTO attachment-key.
+          attachment-tarball-content_type = ajson->get( '/_attachments/' && attachment-key && '/content_type' ).
+          attachment-tarball-data         = ajson->get( '/_attachments/' && attachment-key && '/data' ).
+          attachment-tarball-length       = ajson->get_integer( '/_attachments/' && attachment-key && '/length' ).
+          INSERT attachment INTO TABLE packument-__attachments.
         ENDLOOP.
 
-        LOOP AT li_json->members( '/versions' ) INTO ls_version-key.
-          li_version = li_json->slice( '/versions/' && ls_version-key ).
-          ls_version-version = zcl_package_json=>convert_json_to_manifest( li_version->stringify( ) ).
-          INSERT ls_version INTO TABLE ls_json-versions.
+        LOOP AT ajson->members( '/versions' ) INTO version-key.
+          DATA(ajson_version) = ajson->slice( '/versions/' && version-key ).
+          version-version = zcl_package_json=>convert_json_to_manifest( ajson_version->stringify( ) ).
+          INSERT version INTO TABLE packument-versions.
         ENDLOOP.
 
         " TODO: validation of packument
 
-        result = sort_packument( ls_json ).
+        result = sort_packument( packument ).
 
-      CATCH zcx_ajson_error INTO lx_error.
-        zcx_error=>raise_with_text( lx_error ).
+      CATCH zcx_ajson_error INTO DATA(error).
+        zcx_error=>raise_with_text( error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -275,89 +266,87 @@ CLASS zcl_pacote IMPLEMENTATION.
   METHOD convert_packument_to_json.
 
     DATA:
-      li_json       TYPE REF TO zif_ajson,
-      li_version    TYPE REF TO zif_ajson,
-      lv_version TYPE string,
-      ls_generic    TYPE zif_package_json_types=>ty_generic,
-      ls_time       TYPE zif_package_json_types=>ty_time,
-      ls_person     TYPE zif_package_json_types=>ty_person,
-      ls_user       TYPE zif_package_json_types=>ty_user,
-      ls_version    TYPE zif_pacote=>ty_version,
-      ls_attachment TYPE zif_pacote=>ty_attachment,
-      lx_error      TYPE REF TO zcx_ajson_error.
+      generic    TYPE zif_types=>ty_generic,
+      time       TYPE zif_types=>ty_time,
+      person     TYPE zif_types=>ty_person,
+      user       TYPE zif_types=>ty_user,
+      version    TYPE zif_types=>ty_version,
+      attachment TYPE zif_types=>ty_attachment.
 
     TRY.
-        li_json = zcl_ajson=>new( )->keep_item_order( )->set(
-          iv_path = '/'
-          iv_val  = is_packument ).
-
-        li_json = li_json->map( zcl_ajson_mapping=>create_to_camel_case( ) ).
+        DATA(ajson) = zcl_ajson=>new(
+          )->keep_item_order(
+          )->set(
+            iv_path = '/'
+            iv_val  = packument
+          )->map( zcl_ajson_mapping=>create_to_camel_case( ) ).
 
         " Transpose dist-tags, times, users, versions...
-        li_json->setx( '/dist-tags:{ }' ).
-        LOOP AT is_packument-dist_tags INTO ls_generic.
-          li_json->set(
-            iv_path = 'dist-tags/' && ls_generic-key
-            iv_val  = ls_generic-value ).
+        ajson->delete( '/distTags' ). " created incorrectly due to underscope
+        ajson->setx( '/dist-tags:{ }' ).
+        LOOP AT packument-dist_tags INTO generic.
+          ajson->set(
+            iv_path = 'dist-tags/' && generic-key
+            iv_val  = generic-value ).
         ENDLOOP.
 
-        li_json->setx( '/time:{ }' ).
-        LOOP AT is_packument-time INTO ls_time.
-          li_json->set_timestamp(
-            iv_path = 'time/' && ls_time-key
-            iv_val  = ls_time-timestamp ).
+        ajson->setx( '/time:{ }' ).
+        LOOP AT packument-time INTO time.
+          ajson->set_timestamp(
+            iv_path = 'time/' && time-key
+            iv_val  = time-timestamp ).
         ENDLOOP.
 
-        li_json->setx( '/maintainers:{ }' ).
-        LOOP AT is_packument-maintainers INTO ls_person.
-          li_json->set(
+        ajson->setx( '/maintainers:{ }' ).
+        LOOP AT packument-maintainers INTO person.
+          ajson->set(
             iv_path = 'maintainers/name'
-            iv_val  = ls_person-name ).
-          li_json->set(
+            iv_val  = person-name ).
+          ajson->set(
             iv_path = 'maintainers/email'
-            iv_val  = ls_person-email ).
-          li_json->set(
+            iv_val  = person-email ).
+          ajson->set(
             iv_path = 'maintainers/url'
-            iv_val  = ls_person-url ).
-          li_json->set(
+            iv_val  = person-url ).
+          ajson->set(
             iv_path = 'maintainers/avatar'
-            iv_val  = ls_person-avatar ).
+            iv_val  = person-avatar ).
         ENDLOOP.
 
-        li_json->setx( '/users:{ }' ).
-        LOOP AT is_packument-users INTO ls_user.
-          li_json->set(
-            iv_path = 'users/' && ls_user-name
-            iv_val  = ls_user-value ).
+        ajson->setx( '/users:{ }' ).
+        LOOP AT packument-users INTO user.
+          ajson->set(
+            iv_path = 'users/' && user-name
+            iv_val  = user-value ).
         ENDLOOP.
 
-        li_json->setx( '/_attachments:{ }' ).
-        LOOP AT is_packument-_attachments INTO ls_attachment.
-          li_json->set(
-            iv_path = '_attachments/' && ls_attachment-key && '/content_type'
-            iv_val  = ls_attachment-tarball-content_type ).
-          li_json->set(
-            iv_path = '_attachments/' && ls_attachment-key && '/data'
-            iv_val  = ls_attachment-tarball-data ).
-          li_json->set_integer(
-            iv_path = '_attachments/' && ls_attachment-key && '/length'
-            iv_val  = ls_attachment-tarball-length ).
+        ajson->setx( '/_attachments:{ }' ).
+        LOOP AT packument-__attachments INTO attachment.
+          ajson->set(
+            iv_path = '_attachments/' && attachment-key && '/content_type'
+            iv_val  = attachment-tarball-content_type ).
+          ajson->set(
+            iv_path = '_attachments/' && attachment-key && '/data'
+            iv_val  = attachment-tarball-data ).
+          ajson->set_integer(
+            iv_path = '_attachments/' && attachment-key && '/length'
+            iv_val  = attachment-tarball-length ).
         ENDLOOP.
 
-        li_json->setx( '/versions:{ }' ).
-        LOOP AT is_packument-versions INTO ls_version.
-          lv_version = zcl_package_json=>convert_manifest_to_json( is_manifest = ls_version-version ).
+        ajson->setx( '/versions:{ }' ).
+        LOOP AT packument-versions ASSIGNING FIELD-SYMBOL(<version>).
+          DATA(version_json) = zcl_package_json=>convert_manifest_to_json( manifest = <version>-version ).
 
-          li_version = zcl_ajson=>parse( lv_version )->keep_item_order( ).
+          DATA(ajson_version) = zcl_ajson=>parse( version_json )->keep_item_order( ).
 
-          li_json->set(
-            iv_path = 'versions/' && ls_version-key
-            iv_val  = li_version ).
+          ajson->set(
+            iv_path = 'versions/' && <version>-key
+            iv_val  = ajson_version ).
         ENDLOOP.
 
-        result = li_json->stringify( 2 ).
-      CATCH zcx_ajson_error.
-        zcx_error=>raise_with_text( lx_error ).
+        result = ajson->stringify( 2 ).
+      CATCH zcx_ajson_error INTO DATA(error).
+        zcx_error=>raise_with_text( error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -365,23 +354,20 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD factory.
 
-    DATA ls_instance TYPE ty_instance.
-
-    FIELD-SYMBOLS <ls_instance> TYPE ty_instance.
-
-    READ TABLE gt_instances ASSIGNING <ls_instance> WITH TABLE KEY name = iv_name.
+    READ TABLE instances ASSIGNING FIELD-SYMBOL(<instance>) WITH TABLE KEY name = name.
     IF sy-subrc = 0.
-      result = <ls_instance>-instance.
+      result = <instance>-instance.
     ELSE.
       CREATE OBJECT result TYPE zcl_pacote
         EXPORTING
-          iv_registry  = iv_registry
-          iv_name      = iv_name
-          iv_packument = iv_packument.
+          registry  = registry
+          name      = name
+          packument = packument.
 
-      ls_instance-name     = iv_name.
-      ls_instance-instance = result.
-      INSERT ls_instance INTO TABLE gt_instances.
+      DATA(instance) = VALUE ty_instance(
+        name     = name
+        instance = result ).
+      INSERT instance INTO TABLE instances.
     ENDIF.
 
   ENDMETHOD.
@@ -389,11 +375,9 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD get_agent.
 
-    DATA lv_url TYPE string.
-
     result = zcl_http_agent=>create( ).
 
-    IF iv_abbreviated = abap_true.
+    IF abbreviated = abap_true.
       result->global_headers( )->set(
         iv_key = 'Accept'
         iv_val = 'application/vnd.npm.install-v1+json' ).
@@ -404,13 +388,13 @@ CLASS zcl_pacote IMPLEMENTATION.
     ENDIF.
 
     " Login manager requires git-like URL so we add some dummy repo
-    lv_url = iv_url && '/apm/apm.git'.
+    DATA(login_url) = url && '/apm/apm.git'.
 
     " Get auth token from URL
-    IF zcl_http_login_manager=>get( lv_url ) IS NOT INITIAL.
+    IF zcl_http_login_manager=>get( login_url ) IS NOT INITIAL.
       result->global_headers( )->set(
         iv_key = 'Authorization'
-        iv_val = zcl_http_login_manager=>get( lv_url ) ).
+        iv_val = zcl_http_login_manager=>get( login_url ) ).
     ENDIF.
 
   ENDMETHOD.
@@ -418,34 +402,29 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD get_packument_from_key.
 
-    DATA:
-      lv_prefix TYPE string,
-      lv_suffix TYPE string.
-
-    SPLIT iv_key AT ':' INTO lv_prefix result lv_suffix.
+    SPLIT key AT ':' INTO DATA(prefix) result DATA(suffix).
     result = to_lower( result ).
 
   ENDMETHOD.
 
 
   METHOD get_packument_key.
-    result = |{ zif_persist_apm=>c_key_type-packument }:{ to_upper( iv_name ) }|.
+
+    result = |{ zif_persist_apm=>c_key_type-packument }:{ to_upper( name ) }|.
+
   ENDMETHOD.
 
 
   METHOD injector.
 
-    DATA ls_instance TYPE ty_instance.
-
-    FIELD-SYMBOLS <ls_instance> TYPE ty_instance.
-
-    READ TABLE gt_instances ASSIGNING <ls_instance> WITH TABLE KEY name = iv_name.
+    READ TABLE instances ASSIGNING FIELD-SYMBOL(<instance>) WITH TABLE KEY name = name.
     IF sy-subrc = 0.
-      <ls_instance>-instance = ii_mock.
+      <instance>-instance = mock.
     ELSE.
-      ls_instance-name     = iv_name.
-      ls_instance-instance = ii_mock.
-      INSERT ls_instance INTO TABLE gt_instances.
+      DATA(instance) = VALUE ty_instance(
+        name     = name
+        instance = mock ).
+      INSERT instance INTO TABLE instances.
     ENDIF.
 
   ENDMETHOD.
@@ -453,98 +432,133 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD request.
 
-    DATA lx_error TYPE REF TO zcx_abapgit_exception.
-
     TRY.
-        result = get_agent( mv_registry )->request( iv_url ).
-      CATCH zcx_abapgit_exception INTO lx_error.
-        zcx_error=>raise_with_text( lx_error ).
+        result = get_agent( registry )->request( url ).
+      CATCH zcx_abapgit_exception INTO DATA(error).
+        zcx_error=>raise_with_text( error ).
     ENDTRY.
 
   ENDMETHOD.
 
 
   METHOD sort_packument.
-    result = is_packument.
+
+    result = packument.
     SORT result-dist_tags BY key.
     SORT result-time BY key.
     SORT result-maintainers BY name.
     SORT result-users BY name.
     SORT result-versions BY key.
-    SORT result-_attachments BY key.
+    SORT result-__attachments BY key.
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~delete.
-    gi_persist->delete( ms_pacote-key ).
+
+    db_persist->delete( pacote-key ).
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~exists.
+
     TRY.
-        gi_persist->load( ms_pacote-key ).
+        db_persist->load( pacote-key ).
         result = abap_true.
       CATCH zcx_error.
         result = abap_false.
     ENDTRY.
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~get.
-    result = ms_pacote-packument.
+
+    result = pacote-packument.
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~get_json.
-    result = ms_pacote-json.
+
+    result = pacote-json.
+
+  ENDMETHOD.
+
+
+  METHOD zif_pacote~get_version.
+
+    READ TABLE pacote-packument-versions INTO result
+      WITH TABLE KEY key = version.
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~load.
-    ms_pacote-json      = gi_persist->load( ms_pacote-key )-value.
-    ms_pacote-packument = convert_json_to_packument( ms_pacote-json ).
+
+    pacote-json      = db_persist->load( pacote-key )-value.
+    pacote-packument = convert_json_to_packument( pacote-json ).
+
     result = me.
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~manifest.
+
     result = request(
-      iv_url         = |{ mv_registry }/{ ms_pacote-name }/{ iv_version }|
-      iv_abbreviated = iv_abbreviated )->cdata( ).
+      url         = |{ registry }/{ pacote-name }/{ version }|
+      abbreviated = abbreviated )->cdata( ).
+
     check_result( result ).
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~packument.
-    result = request( |{ mv_registry }/{ ms_pacote-name }| )->cdata( ).
+
+    result = request( |{ registry }/{ pacote-name }| )->cdata( ).
+
     check_result( result ).
     zif_pacote~set_json( result ).
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~save.
-    gi_persist->save(
-      iv_key   = ms_pacote-key
-      iv_value = ms_pacote-json ).
+
+    db_persist->save(
+      key   = pacote-key
+      value = pacote-json ).
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~set.
-    ms_pacote-packument = is_packument.
-    ms_pacote-json      = convert_packument_to_json( is_packument ).
+
+    pacote-packument = packument.
+    pacote-json      = convert_packument_to_json( packument ).
+
     result = me.
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~set_json.
-    ms_pacote-json      = iv_json.
-    ms_pacote-packument = convert_json_to_packument( iv_json ).
+
+    pacote-json      = json.
+    pacote-packument = convert_json_to_packument( json ).
+
     result = me.
+
   ENDMETHOD.
 
 
   METHOD zif_pacote~tarball.
+
     " TODO: Error check (HTTP status)
-    result = request( iv_filename )->data( ).
+    result = request( filename )->data( ).
+
   ENDMETHOD.
 ENDCLASS.
