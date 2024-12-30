@@ -139,7 +139,9 @@ CLASS zcl_pacote IMPLEMENTATION.
 
 
   METHOD class_constructor.
+
     db_persist = zcl_persist_apm=>get_instance( ).
+
   ENDMETHOD.
 
 
@@ -201,7 +203,6 @@ CLASS zcl_pacote IMPLEMENTATION.
       time         TYPE zif_types=>ty_time,
       person       TYPE zif_types=>ty_person,
       user         TYPE zif_types=>ty_user,
-      package_json TYPE zif_types=>ty_package_json,
       version      TYPE zif_types=>ty_version,
       attachment   TYPE zif_types=>ty_attachment,
       packument    TYPE zif_types=>ty_packument.
@@ -213,7 +214,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
         ajson->to_abap( IMPORTING ev_container = json_partial ).
 
-        MOVE-CORRESPONDING json_partial TO packument.
+        packument = CORRESPONDING #( json_partial ).
 
         " Transpose dist-tags, times, users, versions...
         LOOP AT ajson->members( '/dist-tags' ) INTO generic-key.
@@ -235,7 +236,7 @@ CLASS zcl_pacote IMPLEMENTATION.
         ENDLOOP.
 
         LOOP AT ajson->members( '/users' ) INTO user-name.
-          user-value = ajson->get( '/users/' && user-name ).
+          user-stars = ajson->get( '/users/' && user-name ).
           INSERT user INTO TABLE packument-users.
         ENDLOOP.
 
@@ -265,14 +266,6 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD convert_packument_to_json.
 
-    DATA:
-      generic    TYPE zif_types=>ty_generic,
-      time       TYPE zif_types=>ty_time,
-      person     TYPE zif_types=>ty_person,
-      user       TYPE zif_types=>ty_user,
-      version    TYPE zif_types=>ty_version,
-      attachment TYPE zif_types=>ty_attachment.
-
     TRY.
         DATA(ajson) = zcl_ajson=>new(
           )->keep_item_order(
@@ -284,21 +277,21 @@ CLASS zcl_pacote IMPLEMENTATION.
         " Transpose dist-tags, times, users, versions...
         ajson->delete( '/distTags' ). " created incorrectly due to underscope
         ajson->setx( '/dist-tags:{ }' ).
-        LOOP AT packument-dist_tags INTO generic.
+        LOOP AT packument-dist_tags INTO DATA(generic).
           ajson->set(
             iv_path = 'dist-tags/' && generic-key
             iv_val  = generic-value ).
         ENDLOOP.
 
         ajson->setx( '/time:{ }' ).
-        LOOP AT packument-time INTO time.
+        LOOP AT packument-time INTO DATA(time).
           ajson->set_timestamp(
             iv_path = 'time/' && time-key
             iv_val  = time-timestamp ).
         ENDLOOP.
 
         ajson->setx( '/maintainers:{ }' ).
-        LOOP AT packument-maintainers INTO person.
+        LOOP AT packument-maintainers INTO DATA(person).
           ajson->set(
             iv_path = 'maintainers/name'
             iv_val  = person-name ).
@@ -314,14 +307,14 @@ CLASS zcl_pacote IMPLEMENTATION.
         ENDLOOP.
 
         ajson->setx( '/users:{ }' ).
-        LOOP AT packument-users INTO user.
+        LOOP AT packument-users INTO DATA(user).
           ajson->set(
             iv_path = 'users/' && user-name
-            iv_val  = user-value ).
+            iv_val  = user-stars ).
         ENDLOOP.
 
         ajson->setx( '/_attachments:{ }' ).
-        LOOP AT packument-__attachments INTO attachment.
+        LOOP AT packument-__attachments INTO DATA(attachment).
           ajson->set(
             iv_path = '_attachments/' && attachment-key && '/content_type'
             iv_val  = attachment-tarball-content_type ).
@@ -335,7 +328,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
         ajson->setx( '/versions:{ }' ).
         LOOP AT packument-versions ASSIGNING FIELD-SYMBOL(<version>).
-          DATA(version_json) = zcl_package_json=>convert_manifest_to_json( manifest = <version>-version ).
+          DATA(version_json) = zcl_package_json=>convert_manifest_to_json( <version>-version ).
 
           DATA(ajson_version) = zcl_ajson=>parse( version_json )->keep_item_order( ).
 
@@ -358,11 +351,10 @@ CLASS zcl_pacote IMPLEMENTATION.
     IF sy-subrc = 0.
       result = <instance>-instance.
     ELSE.
-      CREATE OBJECT result TYPE zcl_pacote
-        EXPORTING
-          registry  = registry
-          name      = name
-          packument = packument.
+      result = NEW zcl_pacote(
+        registry  = registry
+        name      = name
+        packument = packument ).
 
       DATA(instance) = VALUE ty_instance(
         name     = name
@@ -402,7 +394,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD get_packument_from_key.
 
-    SPLIT key AT ':' INTO DATA(prefix) result DATA(suffix).
+    SPLIT key AT ':' INTO DATA(prefix) result DATA(suffix) ##NEEDED.
     result = to_lower( result ).
 
   ENDMETHOD.
@@ -433,7 +425,18 @@ CLASS zcl_pacote IMPLEMENTATION.
   METHOD request.
 
     TRY.
-        result = get_agent( registry )->request( url ).
+        IF abbreviated IS INITIAL.
+          result = get_agent( registry )->request( url ).
+        ELSE.
+          DATA(headers) = NEW zcl_abap_string_map( ).
+          headers->set(
+            iv_key = 'Accept'
+            iv_val = 'application/vnd.npm.install-v1+json' ).
+
+          result = get_agent( registry )->request(
+            url     = url
+            headers = headers ).
+        ENDIF.
       CATCH zcx_abapgit_exception INTO DATA(error).
         zcx_error=>raise_with_text( error ).
     ENDTRY.
@@ -450,6 +453,7 @@ CLASS zcl_pacote IMPLEMENTATION.
     SORT result-users BY name.
     SORT result-versions BY key.
     SORT result-__attachments BY key.
+    SORT result-keywords.
 
   ENDMETHOD.
 
@@ -489,8 +493,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD zif_pacote~get_version.
 
-    READ TABLE pacote-packument-versions INTO result
-      WITH TABLE KEY key = version.
+    result = pacote-packument-versions[ key = version ].
 
   ENDMETHOD.
 
