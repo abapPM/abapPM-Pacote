@@ -1,21 +1,22 @@
 {
   "name": "@apm/pacote",
   "version": "1.0.0",
-  "description": "Pacote for ABAP",
-  "type": "module",
+  "description": "apm - Fetch package manifests and tarballs from the registry",
   "keywords": [
     "abap",
     "apm",
-    "module"
+    "module",
+    "pacote",
+    "registry"
   ],
   "homepage": "https://abappm.com",
   "bugs": {
-    "url": "https://github.com/abapPM/abapPM-Pacote"
+    "url": "https://github.com/abapPM/abapPM-Pacote/issues"
   },
   "license": "MIT",
   "author": {
     "name": "Marc Bernard",
-    "url": "https://abappm.com"
+    "url": "https://github.com/mbtools"
   },
   "maintainers": [
     {
@@ -24,14 +25,18 @@
     }
   ],
   "repository": {
+    "type": "https",
     "url": "https://github.com/abapPM/abapPM-Pacote"
   },
   "funding": {
     "type": "github",
-    "url": "https://github.com/sponsors/abapPM"
+    "url": "https://github.com/sponsors/abappm"
   },
   "dependencies": {
-    "error": "^1.0.0"
+    "@apm/persist": "^1.0.0",
+    "ajson": "^1.1.10",
+    "error": "^1.0.0",
+    "http-agent": "^1.0.0"
   },
   "engines": {
     "abap": ">=7.50",
