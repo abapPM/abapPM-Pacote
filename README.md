@@ -1,3 +1,9 @@
+<div align="right">
+  <picture>
+    <img width="100" height="40" alt="apm logo banner" src="https://github.com/abapPM/abapPM/blob/main/img/apm_banner.png?raw=true&ver=1.0.0">
+  </picture>
+</div>
+
 ![Version](https://img.shields.io/endpoint?url=https://shield.abappm.com/github/abapPM/abapPM-Pacote/src/zif_pacote.intf.abap/c_version&label=Version&color=blue)
 
 [![License](https://img.shields.io/github/license/abapPM/abapPM-Pacote?label=License&color=success)](LICENSE)
