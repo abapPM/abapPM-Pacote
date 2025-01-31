@@ -1,7 +1,7 @@
 {
   "name": "@apm/pacote",
   "version": "1.0.0",
-  "description": "apm - Fetch package manifests and tarballs from the registry",
+  "description": "Fetch package manifests and tarballs from the apm registry",
   "keywords": [
     "abap",
     "apm",
