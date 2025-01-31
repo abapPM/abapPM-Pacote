@@ -23,16 +23,21 @@
     {
       "files": "/src/**/*.*",
       "folder": "/deps5",
-      "url": "https://github.com/abapPM/abapPM-Persistence"
+      "url": "https://github.com/abapPM/abapPM-Package-JSON"
     },
     {
       "files": "/src/**/*.*",
       "folder": "/deps6",
-      "url": "https://github.com/abapPM/abapPM-Types"
+      "url": "https://github.com/abapPM/abapPM-Persistence"
     },
     {
       "files": "/src/**/*.*",
       "folder": "/deps7",
+      "url": "https://github.com/abapPM/abapPM-Types"
+    },
+    {
+      "files": "/src/**/*.*",
+      "folder": "/deps8",
       "url": "https://github.com/sbcgua/ajson"
     }
   ],
