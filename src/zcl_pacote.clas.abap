@@ -69,6 +69,8 @@ CLASS zcl_pacote DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    CONSTANTS c_abbreviated_json TYPE string VALUE 'application/vnd.npm.install-v1+json'.
+
     TYPES:
       BEGIN OF ty_instance,
         name     TYPE string,
@@ -371,22 +373,21 @@ CLASS zcl_pacote IMPLEMENTATION.
 
     IF abbreviated = abap_true.
       result->global_headers( )->set(
-        iv_key = 'Accept'
-        iv_val = 'application/vnd.npm.install-v1+json' ).
+        iv_key = zif_http_agent=>c_header-accept
+        iv_val = c_abbreviated_json ).
     ELSE.
       result->global_headers( )->set(
-        iv_key = 'Accept'
-        iv_val = 'application/json' ).
+        iv_key = zif_http_agent=>c_header-accept
+        iv_val = zif_http_agent=>c_content_type-json ).
     ENDIF.
 
-    " Login manager requires git-like URL so we add some dummy repo
-    DATA(login_url) = url && '/apm/apm.git'.
+    DATA(urlc) = zcl_url=>parse( url )->components.
 
-    " Get auth token from URL
-    IF zcl_http_login_manager=>get( login_url ) IS NOT INITIAL.
+    " Get/set auth token
+    IF zcl_http_login_manager=>get( urlc-host ) IS NOT INITIAL.
       result->global_headers( )->set(
-        iv_key = 'Authorization'
-        iv_val = zcl_http_login_manager=>get( login_url ) ).
+        iv_key = zif_http_agent=>c_header-authorization
+        iv_val = zcl_http_login_manager=>get( urlc-host ) ).
     ENDIF.
 
   ENDMETHOD.
