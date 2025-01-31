@@ -22,7 +22,12 @@
     },
     {
       "files": "/src/**/*.*",
-      "folder": "/deps5",
+      "folder": "/deps6",
+      "url": "https://github.com/abapPM/abapPM-Persistence"
+    },
+    {
+      "files": "/src/**/*.*",
+      "folder": "/deps7",
       "url": "https://github.com/sbcgua/ajson"
     }
   ],
