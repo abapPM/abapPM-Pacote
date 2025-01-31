@@ -39,6 +39,7 @@
     "ajson": "^1.1.10",
     "error": "^1.0.0",
     "http-agent": "^1.0.0",
+    "string-map": "^1.0.5",
     "url": "^1.0.0"
   },
   "engines": {
