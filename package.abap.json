@@ -33,6 +33,7 @@
     "url": "https://github.com/sponsors/abappm"
   },
   "dependencies": {
+    "@apm/package-json": "^1.0.0",
     "@apm/persist": "^1.0.0",
     "@apm/types": "^1.0.0",
     "ajson": "^1.1.10",
