@@ -4,7 +4,7 @@ CLASS ltcl_pacote DEFINITION FOR TESTING RISK LEVEL HARMLESS
   PRIVATE SECTION.
 
     DATA:
-      cut            TYPE REF TO zif_package_json,
+      cut            TYPE REF TO zif_package_json ##NEEDED,
       test_packument TYPE zif_types=>ty_packument,
       test_json      TYPE string.
 
@@ -409,11 +409,13 @@ CLASS ltcl_pacote IMPLEMENTATION.
               shasum                 = `c689ad02174b9a45ee0f2350f74a0b503a109389`
               tarball                = `https://registry.npmjs.org/@registrytest/package/-/package-1.0.0.tgz`
               unpacked_size          = 3987
-              integrity              = `sha512-Z5UFg8g3X4eT/1wl1HCVENNAvNh9z5By7z3OL7XZQnsBh1SQ1dtUu1InlT3b2DkpOOxwagDAVTX16hS25TU/rw==`
+              integrity              =
+              `sha512-Z5UFg8g3X4eT/1wl1HCVENNAvNh9z5By7z3OL7XZQnsBh1SQ1dtUu1InlT3b2DkpOOxwagDAVTX16hS25TU/rw==`
               signatures             = VALUE #(
                 (
                   keyid              = `SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA`
-                  sig                = `MEUCIQDGjADf3mDXMzryyGvffT0/s1IqISZC00BF8WctcYzq3gIgHCzxFPNAuwe616Fcvr4tOM2FRrP6MKfhtIpuRBI2pjg=`
+                  sig                =
+                  `MEUCIQDGjADf3mDXMzryyGvffT0/s1IqISZC00BF8WctcYzq3gIgHCzxFPNAuwe616Fcvr4tOM2FRrP6MKfhtIpuRBI2pjg=`
                 )
               )
             )
@@ -490,8 +492,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
           )
         )
       )
-      access                         = `test`
-    ).
+      access                         = `test` ).
 
   ENDMETHOD.
 

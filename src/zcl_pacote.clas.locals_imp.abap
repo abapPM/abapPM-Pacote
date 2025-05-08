@@ -49,8 +49,7 @@ CLASS lcl_validate IMPLEMENTATION.
       IF zcl_package_json_valid=>is_valid_version( dist_tag-value ) = abap_false.
         INSERT |Invalid dist-tag version: { dist_tag-key } { dist_tag-value }| INTO TABLE result.
       ENDIF.
-      READ TABLE packument-versions TRANSPORTING NO FIELDS WITH KEY key = dist_tag-value.
-      IF sy-subrc <> 0.
+      IF NOT line_exists( packument-versions[ key = dist_tag-value ] ).
         INSERT |Dist-tag version does not exist: { dist_tag-key } { dist_tag-value }| INTO TABLE result.
       ENDIF.
     ENDLOOP.
@@ -58,8 +57,7 @@ CLASS lcl_validate IMPLEMENTATION.
       INSERT |Duplicate dist-tags| INTO TABLE result.
     ENDIF.
 
-    READ TABLE packument-dist_tags TRANSPORTING NO FIELDS WITH KEY key = 'latest'.
-    IF sy-subrc <> 0.
+    IF NOT line_exists( packument-dist_tags[ key = 'latest' ] ).
       INSERT |"latest" dist-tags is missing| INTO TABLE result.
     ENDIF.
 
@@ -73,11 +71,8 @@ CLASS lcl_validate IMPLEMENTATION.
     LOOP AT packument-time INTO DATA(time).
       COLLECT time-key INTO values.
 
-      IF time-key <> 'created' AND time-key <> 'modified'.
-        READ TABLE packument-versions TRANSPORTING NO FIELDS WITH KEY key = time-key.
-        IF sy-subrc <> 0.
-          INSERT |Timestamp version does not exist: { time-key }| INTO TABLE result.
-        ENDIF.
+      IF time-key <> 'created' AND time-key <> 'modified' AND NOT line_exists( packument-versions[ key = time-key ] ).
+        INSERT |Timestamp version does not exist: { time-key }| INTO TABLE result.
       ENDIF.
     ENDLOOP.
     IF lines( packument-time ) <> lines( values ).
