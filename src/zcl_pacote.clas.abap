@@ -412,13 +412,13 @@ CLASS zcl_pacote IMPLEMENTATION.
         iv_val = zif_http_agent=>c_content_type-json ).
     ENDIF.
 
-    DATA(urlc) = zcl_url=>parse( url )->components.
+    DATA(host) = zcl_url=>parse( url )->components-host.
 
     " Get/set auth token
-    IF zcl_http_login_manager=>get( urlc-host ) IS NOT INITIAL.
+    IF zcl_http_login_manager=>get( host ) IS NOT INITIAL.
       result->global_headers( )->set(
         iv_key = zif_http_agent=>c_header-authorization
-        iv_val = zcl_http_login_manager=>get( urlc-host ) ).
+        iv_val = zcl_http_login_manager=>get( host ) ).
     ENDIF.
 
   ENDMETHOD.
@@ -459,8 +459,7 @@ CLASS zcl_pacote IMPLEMENTATION.
     IF abbreviated IS INITIAL.
       result = get_agent( registry )->request( url ).
     ELSE.
-      DATA(headers) = NEW zcl_abap_string_map( ).
-      headers->set(
+      DATA(headers) = NEW zcl_abap_string_map( )->set(
         iv_key = 'Accept'
         iv_val = 'application/vnd.npm.install-v1+json' ).
 
@@ -506,6 +505,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
     TRY.
         db_persist->load( pacote-key ).
+
         result = abap_true.
       CATCH zcx_error.
         result = abap_false.
@@ -561,6 +561,7 @@ CLASS zcl_pacote IMPLEMENTATION.
     result = request( |{ registry }/{ pacote-name }{ write_request( write ) }| )->cdata( ).
 
     check_result( result ).
+
     zif_pacote~set_json( result ).
 
   ENDMETHOD.
