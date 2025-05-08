@@ -3,7 +3,22 @@ CLASS ltcl_pacote DEFINITION FOR TESTING RISK LEVEL HARMLESS
 
   PRIVATE SECTION.
 
-    METHODS get_complete FOR TESTING RAISING zcx_error.
+    DATA:
+      cut            TYPE REF TO zif_package_json,
+      test_packument TYPE zif_types=>ty_packument,
+      test_json      TYPE string.
+
+    METHODS setup.
+
+    METHODS prepare_string
+      IMPORTING
+        input         TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS:
+      convert_json_to_packument FOR TESTING RAISING zcx_error,
+      convert_packument_to_json FOR TESTING RAISING zcx_error.
 
 ENDCLASS.
 
@@ -11,212 +26,501 @@ CLASS zcl_pacote DEFINITION LOCAL FRIENDS ltcl_pacote.
 
 CLASS ltcl_pacote IMPLEMENTATION.
 
-  METHOD get_complete.
+  METHOD setup.
 
-    DATA packument TYPE zif_types=>ty_packument.
+    test_json = `{`
+      && `|  "name": "@registrytest/package",`
+      && `|  "description": "This is an example package",`
+      && `|  "dist-tags": {`
+      && `|    "latest": "1.0.0"`
+      && `|  },`
+      && `|  "time": {`
+* TODO: needs timestampl support in AJSON
+*      && `|    "1.0.0": "2024-05-02T12:17:47.805Z",`
+*      && `|    "created": "2024-05-02T17:59:06.250Z",`
+*      && `|    "modified": "2024-11-10T19:51:04.774Z"`
+      && `|    "1.0.0": "2024-05-02T12:17:47Z",`
+      && `|    "created": "2024-05-02T17:59:06Z",`
+      && `|    "modified": "2024-11-10T19:51:04Z"`
+      && `|  },`
+      && `|  "versions": {`
+      && `|    "1.0.0": {`
+      && `|      "name": "@registrytest/package",`
+      && `|      "version": "1.0.0",`
+      && `|      "description": "This is an example package",`
+      && `|      "type": "module",`
+      && `|      "keywords": [`
+      && `|        "example",`
+      && `|        "package",`
+      && `|        "test"`
+      && `|      ],`
+      && `|      "homepage": "https://registrytest.org",`
+      && `|      "icon": "registrytest.svg",`
+      && `|      "bugs": {`
+      && `|        "url": "https://github.com/registrytest/package/issues",`
+      && `|        "email": "bugs@registrytest.org"`
+      && `|      },`
+      && `|      "license": "MIT",`
+      && `|      "author": {`
+      && `|        "name": "Olivia Ortega",`
+      && `|        "url": "https://github.com/rt-owner",`
+      && `|        "email": "owner@registrytest.org",`
+      && `|        "avatar": "data:image/svg+xml;"`
+      && `|      },`
+      && `|      "contributors": [`
+      && `|        {`
+      && `|          "name": "Cindy Collins",`
+      && `|          "url": "https://github.com/rt-contributors",`
+      && `|          "email": "contributor@registrytest.org"`
+      && `|        },`
+      && `|        {`
+      && `|          "name": "Olivia Ortega",`
+      && `|          "url": "https://github.com/rt-owner",`
+      && `|          "email": "owner@registrytest.org"`
+      && `|        }`
+      && `|      ],`
+      && `|      "maintainers": [`
+      && `|        {`
+      && `|          "name": "mbtools",`
+      && `|          "email": "marc@marcbernardtools.com"`
+      && `|        },`
+      && `|        {`
+      && `|          "name": "rt-contributor",`
+      && `|          "email": "contributor@registrytest.org"`
+      && `|        },`
+      && `|        {`
+      && `|          "name": "rt-maintainer",`
+      && `|          "email": "maintainer@registrytest.org"`
+      && `|        },`
+      && `|        {`
+      && `|          "name": "rt-owner",`
+      && `|          "email": "owner@registrytest.org"`
+      && `|        }`
+      && `|      ],`
+      && `|      "main": "index.js",`
+      && `|      "man": [`
+      && `|        "manual.md"`
+      && `|      ],`
+      && `|      "repository": {`
+      && `|        "type": "git",`
+      && `|        "url": "git+https://github.com/registrytest/package.git"`
+      && `|      },`
+      && `|      "funding": {`
+      && `|        "type": "github",`
+      && `|        "url": "https://github.com/registrytest"`
+      && `|      },`
+      && `|      "dependencies": {`
+      && `|        "express": "^4.19.2",`
+      && `|        "lodash": "^4.17.21",`
+      && `|        "semver": "~7.6.0"`
+      && `|      },`
+      && `|      "devDependencies": {`
+      && `|        "eslint": "^9.1.1",`
+      && `|        "jest": "^29.7.0",`
+      && `|        "prettier": "^3.2.5"`
+      && `|      },`
+      && `|      "optionalDependencies": {`
+      && `|        "tap": "18.7.2"`
+      && `|      },`
+      && `|      "peerDependencies": {`
+      && `|        "lodash": "^4.17.21",`
+      && `|        "react": ">=17 <19.0.0"`
+      && `|      },`
+      && `|      "bundleDependencies": [`
+      && `|        "semver"`
+      && `|      ],`
+      && `|      "engines": {`
+      && `|        "abap": ">=7.50",`
+      && `|        "apm": ">=1"`
+      && `|      },`
+      && `|      "os": [`
+      && `|        "linux"`
+      && `|      ],`
+      && `|      "cpu": [`
+      && `|        "x86-64"`
+      && `|      ],`
+      && `|      "db": [`
+      && `|        "hdb"`
+      && `|      ],`
+      && `|      "private": true,`
+      && `|      "readme": "# A Package for Registry Test",`
+      && `|      "dist": {`
+      && `|        "fileCount": 6,`
+      && `|        "shasum": "c689ad02174b9a45ee0f2350f74a0b503a109389",`
+      && `|        "tarball": "https://registry.npmjs.org/@registrytest/package/-/package-1.0.0.tgz",`
+      && `|        "unpackedSize": 3987,`
+      && `|        "integrity": "sha512-Z5UFg8g3X4eT/1wl1HCVENNAvNh9z5By7z3OL7XZQnsBh1SQ1dtUu1InlT3b2D`
+      && `kpOOxwagDAVTX16hS25TU/rw==",`
+      && `|        "signatures": [`
+      && `|          {`
+      && `|            "keyid": "SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA",`
+      && `|            "sig": "MEUCIQDGjADf3mDXMzryyGvffT0/s1IqISZC00BF8WctcYzq3gIgHCzxFPNAuwe616Fcvr4`
+      && `tOM2FRrP6MKfhtIpuRBI2pjg="`
+      && `|          }`
+      && `|        ]`
+      && `|      },`
+      && `|      "deprecated": true,`
+      && `|      "_id": "@registrytest/package@1.0.0",`
+      && `|      "_abapVersion": "7.54.0",`
+      && `|      "_apmVersion": "1.0.0"`
+      && `|    }`
+      && `|  },`
+      && `|  "maintainers": [`
+      && `|    {`
+      && `|      "name": "rt-maintainer",`
+      && `|      "email": "maintainer@registrytest.org"`
+      && `|    },`
+      && `|    {`
+      && `|      "name": "rt-owner",`
+      && `|      "email": "owner@registrytest.org"`
+      && `|    }`
+      && `|  ],`
+      && `|  "readme": "# A Package for Registry Test",`
+      && `|  "users": {`
+      && `|    "be": 4,`
+      && `|    "edge": 5`
+      && `|  },`
+      && `|  "homepage": "https://registrytest.org",`
+      && `|  "icon": "registrytest.svg",`
+      && `|  "bugs": {`
+      && `|    "url": "https://github.com/registrytest/package/issues",`
+      && `|    "email": "bugs@registrytest.org"`
+      && `|  },`
+      && `|  "license": "MIT",`
+      && `|  "keywords": [`
+      && `|    "example",`
+      && `|    "package",`
+      && `|    "test"`
+      && `|  ],`
+      && `|  "author": {`
+      && `|    "name": "Olivia Ortega",`
+      && `|    "url": "https://github.com/rt-owner",`
+      && `|    "email": "owner@registrytest.org",`
+      && `|    "avatar": "data:image/svg+xml;"`
+      && `|  },`
+      && `|  "repository": {`
+      && `|    "type": "git",`
+      && `|    "url": "git+https://github.com/registrytest/package.git",`
+      && `|    "directory": "/src"`
+      && `|  },`
+      && `|  "_id": "@registrytest/package",`
+      && `|  "_rev": "5-c21daa8aefda6b83f0f0cfd7302e0f81",`
+      && `|  "_attachments": {`
+      && `|    "package-1.0.0.tgz": {`
+      && `|      "content_type": "tgz",`
+      && `|      "data": "a1b2c3",`
+      && `|      "length": 123`
+      && `|    }`
+      && `|  },`
+      && `|  "access": "test"`
+      && `|}`.
 
-    DATA(version) = VALUE zif_types=>ty_manifest(
-      name         = 'test'
-      version      = '1.0.0'
-      author-name  = 'Marc'
-      author-email = 'marc@test.com' ).
+    test_json = prepare_string( test_json ).
 
-    DATA(dependency) = VALUE zif_types=>ty_dependency(
-      name  = 'dep2'
-      range = '2.0.0' ).
-    INSERT dependency INTO TABLE version-dependencies.
-    dependency-name  = 'dep3'.
-    dependency-range = '>3'.
-    INSERT dependency INTO TABLE version-dev_dependencies.
-    dependency-name  = 'dep4'.
-    dependency-range = '^4.1.0'.
-    INSERT dependency INTO TABLE version-optional_dependencies.
-    dependency-name  = 'dep5'.
-    dependency-range = '^5.0.1'.
-    INSERT dependency INTO TABLE version-peer_dependencies.
-    INSERT `dep2` INTO TABLE version-bundle_dependencies.
-    dependency-name  = 'abap'.
-    dependency-range = '>=7.50'.
-    INSERT dependency INTO TABLE version-engines.
-    dependency-name  = 'apm'.
-    dependency-range = '>=1'.
-    INSERT dependency INTO TABLE version-engines.
-
-    DATA(json) = |\{\n|
-      && |  "_id": "@registrytest/package",\n|
-      && |  "_rev": "5-c21daa8aefda6b83f0f0cfd7302e0f81",\n|
-      && |  "author": \{\n|
-      && |    "email": "owner@registrytest.org",\n|
-      && |    "name": "Olivia Ortega",\n|
-      && |    "url": "https://github.com/rt-owner"\n|
-      && |  \},\n|
-      && |  "bugs": \{\n|
-      && |    "email": "bugs@registrytest.org",\n|
-      && |    "url": "https://github.com/registrytest/package/issues"\n|
-      && |  \},\n|
-      && |  "contributors": [\n|
-      && |    \{\n|
-      && |      "email": "owner@registrytest.org",\n|
-      && |      "name": "Olivia Ortega",\n|
-      && |      "url": "https://github.com/rt-owner"\n|
-      && |    \},\n|
-      && |    \{\n|
-      && |      "email": "contributor@registrytest.org",\n|
-      && |      "name": "Cindy Collins",\n|
-      && |      "url": "https://github.com/rt-contributors"\n|
-      && |    \}\n|
-      && |  ],\n|
-      && |  "description": "This is an example package",\n|
-      && |  "dist-tags": \{\n|
-      && |    "latest": "1.0.1"\n|
-      && |  \},\n|
-      && |  "homepage": "https://registrytest.org",\n|
-      && |  "keywords": [\n|
-      && |    "example",\n|
-      && |    "package",\n|
-      && |    "test"\n|
-      && |  ],\n|
-      && |  "license": "MIT",\n|
-      && |  "maintainers": [\n|
-      && |    \{\n|
-      && |      "email": "owner@registrytest.org",\n|
-      && |      "name": "rt-owner"\n|
-      && |    \},\n|
-      && |    \{\n|
-      && |      "email": "maintainer@registrytest.org",\n|
-      && |      "name": "rt-maintainer"\n|
-      && |    \}\n|
-      && |  ],\n|
-      && |  "name": "@registrytest/package",\n|
-      && |  "readme": "# A Package for Registry Test",\n|
-      && |  "repository": \{\n|
-      && |    "type": "git",\n|
-      && |    "url": "git+https://github.com/registrytest/package.git"\n|
-      && |  \},\n|
-      && |  "time": \{\n|
-      && |    "1.0.0": "2024-05-02T12:17:47.805Z",\n|
-      && |    "created": "2024-05-02T17:59:06.250Z",\n|
-      && |    "modified": "2024-11-10T19:51:04.774Z"\n|
-      && |  \},\n|
-      && |  "versions": \{\n|
-      && |    "1.0.0": \{\n|
-      && |      "_id": "@registrytest/package@1.0.1",\n|
-      && |      "_abapVersion": "7.54.0",\n|
-      && |      "_apmVersion": "1.0.0",\n|
-      && |      "author": \{\n|
-      && |        "email": "owner@registrytest.org",\n|
-      && |        "name": "Olivia Ortega",\n|
-      && |        "url": "https://github.com/rt-owner"\n|
-      && |      \},\n|
-      && |      "bugs": \{\n|
-      && |        "email": "bugs@registrytest.org",\n|
-      && |        "url": "https://github.com/registrytest/package/issues"\n|
-      && |      \},\n|
-      && |      "bundleDependencies": [\n|
-      && |        "semver"\n|
-      && |      ],\n|
-      && |      "contributors": [\n|
-      && |        \{\n|
-      && |          "email": "owner@registrytest.org",\n|
-      && |          "name": "Olivia Ortega",\n|
-      && |          "url": "https://github.com/rt-owner"\n|
-      && |        \},\n|
-      && |        \{\n|
-      && |          "email": "contributor@registrytest.org",\n|
-      && |          "name": "Cindy Collins",\n|
-      && |          "url": "https://github.com/rt-contributors"\n|
-      && |        \}\n|
-      && |      ],\n|
-      && |      "cpu": [\n|
-      && |        "x86-64"\n|
-      && |      ],\n|
-      && |      "dependencies": \{\n|
-      && |        "express": "^4.19.2",\n|
-      && |        "lodash": "^4.17.21",\n|
-      && |        "semver": "~7.6.0"\n|
-      && |      \},\n|
-      && |      "description": "This is an example package",\n|
-      && |      "devDependencies": \{\n|
-      && |        "eslint": "^9.1.1",\n|
-      && |        "jest": "^29.7.0",\n|
-      && |        "prettier": "^3.2.5"\n|
-      && |      \},\n|
-      && |      "dist": \{\n|
-      && |        "fileCount": 6,\n|
-      && |        "integrity": "sha512-Z5UFg8g3X4eT/1wl1HCVENNAvNh9z5By7z3OL7XZQnsBh1SQ1dtUu1InlT3b2D|
-      && |kpOOxwagDAVTX16hS25TU/rw==",\n|
-      && |        "shasum": "c689ad02174b9a45ee0f2350f74a0b503a109389",\n|
-      && |        "signatures": [\n|
-      && |          \{\n|
-      && |            "keyid": "SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA",\n|
-      && |            "sig": "MEUCIQDGjADf3mDXMzryyGvffT0/s1IqISZC00BF8WctcYzq3gIgHCzxFPNAuwe616Fcvr4|
-      && |tOM2FRrP6MKfhtIpuRBI2pjg="\n|
-      && |          \}\n|
-      && |        ],\n|
-      && |        "tarball": "https://registry.npmjs.org/@registrytest/package/-/package-1.0.1.tgz",\n|
-      && |        "unpackedSize": 3987\n|
-      && |      \},\n|
-      && |      "engines": \{\n|
-      && |        "abap": ">=7.50",\n|
-      && |        "apm": ">=1"\n|
-      && |      \},\n|
-      && |      "funding": \{\n|
-      && |        "type": "github",\n|
-      && |        "url": "https://github.com/registrytest"\n|
-      && |      \},\n|
-      && |      "homepage": "https://registrytest.org",\n|
-      && |      "keywords": [\n|
-      && |        "example",\n|
-      && |        "package",\n|
-      && |        "test"\n|
-      && |      ],\n|
-      && |      "license": "MIT",\n|
-      && |      "maintainers": [\n|
-      && |        \{\n|
-      && |          "email": "owner@registrytest.org",\n|
-      && |          "name": "rt-owner"\n|
-      && |        \},\n|
-      && |        \{\n|
-      && |          "email": "maintainer@registrytest.org",\n|
-      && |          "name": "rt-maintainer"\n|
-      && |        \},\n|
-      && |        \{\n|
-      && |          "email": "contributor@registrytest.org",\n|
-      && |          "name": "rt-contributor"\n|
-      && |        \},\n|
-      && |        \{\n|
-      && |          "email": "marc@marcbernardtools.com",\n|
-      && |          "name": "mbtools"\n|
-      && |        \}\n|
-      && |      ],\n|
-      && |      "name": "@registrytest/package",\n|
-      && |      "optionalDependencies": \{\n|
-      && |        "tap": "18.7.2"\n|
-      && |      \},\n|
-      && |      "os": [\n|
-      && |        "linux"\n|
-      && |      ],\n|
-      && |      "peerDependencies": \{\n|
-      && |        "lodash": "^4.17.21",\n|
-      && |        "react": ">=17 <19.0.0"\n|
-      && |      \},\n|
-      && |      "repository": \{\n|
-      && |        "type": "git",\n|
-      && |        "url": "git+https://github.com/registrytest/package.git"\n|
-      && |      \},\n|
-      && |      "type": "module",\n|
-      && |      "version": "1.0.0"\n|
-      && |    \}\n|
-      && |  \}\n|
-      && |\}\n|.
-
-    DATA(act) = zcl_pacote=>convert_json_to_packument( json ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = act
-      exp = packument ).
+    test_packument                   = VALUE #(
+      name                           = `@registrytest/package`
+      description                    = `This is an example package`
+      dist_tags                      = VALUE #(
+        (
+          key                        = `latest`
+          value                      = `1.0.0`
+        )
+      )
+* TODO: needs timestampl support in AJSON
+      time                           = VALUE #(
+        (
+          key                        = `1.0.0`
+          timestamp                  = 20240502121747
+        )
+        (
+          key                        = `created`
+          timestamp                  = 20240502175906
+        )
+        (
+          key                        = `modified`
+          timestamp                  = 20241110195104
+        )
+      )
+      versions                       = VALUE #(
+        (
+          key                        = `1.0.0`
+          version                    = VALUE #(
+            name                     = `@registrytest/package`
+            version                  = `1.0.0`
+            description              = `This is an example package`
+            type                     = `module`
+            keywords                 = VALUE #(
+              (
+                                       `example`
+              )
+              (
+                                       `package`
+              )
+              (
+                                       `test`
+              )
+            )
+            homepage                 = `https://registrytest.org`
+            icon                     = `registrytest.svg`
+            bugs                     = VALUE #(
+              url                    = `https://github.com/registrytest/package/issues`
+              email                  = `bugs@registrytest.org`
+            )
+            license                  = `MIT`
+            author                   = VALUE #(
+              name                   = `Olivia Ortega`
+              url                    = `https://github.com/rt-owner`
+              email                  = `owner@registrytest.org`
+              avatar                 = `data:image/svg+xml;`
+            )
+            contributors             = VALUE #(
+              (
+                name                 = `Cindy Collins`
+                url                  = `https://github.com/rt-contributors`
+                email                = `contributor@registrytest.org`
+                avatar               = ``
+              )
+              (
+                name                 = `Olivia Ortega`
+                url                  = `https://github.com/rt-owner`
+                email                = `owner@registrytest.org`
+                avatar               = ``
+              )
+            )
+            maintainers              = VALUE #(
+              (
+                name                 = `mbtools`
+                url                  = ``
+                email                = `marc@marcbernardtools.com`
+                avatar               = ``
+              )
+              (
+                name                 = `rt-contributor`
+                url                  = ``
+                email                = `contributor@registrytest.org`
+                avatar               = ``
+              )
+              (
+                name                 = `rt-maintainer`
+                url                  = ``
+                email                = `maintainer@registrytest.org`
+                avatar               = ``
+              )
+              (
+                name                 = `rt-owner`
+                url                  = ``
+                email                = `owner@registrytest.org`
+                avatar               = ``
+              )
+            )
+            main                     = `index.js`
+            man                      = VALUE #(
+              (
+                                       `manual.md`
+              )
+            )
+            repository               = VALUE #(
+              type                   = `git`
+              url                    = `git+https://github.com/registrytest/package.git`
+              directory              = ``
+            )
+            funding                  = VALUE #(
+              type                   = `github`
+              url                    = `https://github.com/registrytest`
+            )
+            dependencies             = VALUE #(
+              (
+                key                  = `express`
+                range                = `^4.19.2`
+              )
+              (
+                key                  = `lodash`
+                range                = `^4.17.21`
+              )
+              (
+                key                  = `semver`
+                range                = `~7.6.0`
+              )
+            )
+            dev_dependencies         = VALUE #(
+              (
+                key                  = `eslint`
+                range                = `^9.1.1`
+              )
+              (
+                key                  = `jest`
+                range                = `^29.7.0`
+              )
+              (
+                key                  = `prettier`
+                range                = `^3.2.5`
+              )
+            )
+            optional_dependencies    = VALUE #(
+              (
+                key                  = `tap`
+                range                = `18.7.2`
+              )
+            )
+            peer_dependencies        = VALUE #(
+              (
+                key                  = `lodash`
+                range                = `^4.17.21`
+              )
+              (
+                key                  = `react`
+                range                = `>=17 <19.0.0`
+              )
+            )
+            bundle_dependencies      = VALUE #(
+              (
+                                       `semver`
+              )
+            )
+            engines                  = VALUE #(
+              (
+                key                  = `abap`
+                range                = `>=7.50`
+              )
+              (
+                key                  = `apm`
+                range                = `>=1`
+              )
+            )
+            os                       = VALUE #(
+              (
+                                       `linux`
+              )
+            )
+            cpu                      = VALUE #(
+              (
+                                       `x86-64`
+              )
+            )
+            db                       = VALUE #(
+              (
+                                       `hdb`
+              )
+            )
+            private                  = abap_true
+            readme                   = `# A Package for Registry Test`
+            dist                     = VALUE #(
+              file_count             = 6
+              shasum                 = `c689ad02174b9a45ee0f2350f74a0b503a109389`
+              tarball                = `https://registry.npmjs.org/@registrytest/package/-/package-1.0.0.tgz`
+              unpacked_size          = 3987
+              integrity              = `sha512-Z5UFg8g3X4eT/1wl1HCVENNAvNh9z5By7z3OL7XZQnsBh1SQ1dtUu1InlT3b2DkpOOxwagDAVTX16hS25TU/rw==`
+              signatures             = VALUE #(
+                (
+                  keyid              = `SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA`
+                  sig                = `MEUCIQDGjADf3mDXMzryyGvffT0/s1IqISZC00BF8WctcYzq3gIgHCzxFPNAuwe616Fcvr4tOM2FRrP6MKfhtIpuRBI2pjg=`
+                )
+              )
+            )
+            deprecated               = abap_true
+            _id                      = `@registrytest/package@1.0.0`
+            _abap_version            = `7.54.0`
+            _apm_version             = `1.0.0`
+          )
+        )
+      )
+      maintainers                    = VALUE #(
+        (
+          name                       = `rt-maintainer`
+          url                        = ``
+          email                      = `maintainer@registrytest.org`
+          avatar                     = ``
+        )
+        (
+          name                       = `rt-owner`
+          url                        = ``
+          email                      = `owner@registrytest.org`
+          avatar                     = ``
+        )
+      )
+      readme                         = `# A Package for Registry Test`
+      users                          = VALUE #(
+        (
+          name                       = `be`
+          stars                      = 4
+        )
+        (
+          name                       = `edge`
+          stars                      = 5
+        )
+      )
+      homepage                       = `https://registrytest.org`
+      icon                           = `registrytest.svg`
+      bugs                           = VALUE #(
+        url                          = `https://github.com/registrytest/package/issues`
+        email                        = `bugs@registrytest.org`
+      )
+      license                        = `MIT`
+      keywords                       = VALUE #(
+        (
+                                       `example`
+        )
+        (
+                                       `package`
+        )
+        (
+                                       `test`
+        )
+      )
+      author                         = VALUE #(
+        name                         = `Olivia Ortega`
+        url                          = `https://github.com/rt-owner`
+        email                        = `owner@registrytest.org`
+        avatar                       = `data:image/svg+xml;`
+      )
+      repository                     = VALUE #(
+        type                         = `git`
+        url                          = `git+https://github.com/registrytest/package.git`
+        directory                    = `/src`
+      )
+      _id                            = `@registrytest/package`
+      _rev                           = `5-c21daa8aefda6b83f0f0cfd7302e0f81`
+      _attachments                   = VALUE #(
+        (
+          key                        = `package-1.0.0.tgz`
+          tarball                    = VALUE #(
+            content_type             = `tgz`
+            data                     = `a1b2c3`
+            length                   = 123
+          )
+        )
+      )
+      access                         = `test`
+    ).
 
   ENDMETHOD.
 
+  METHOD prepare_string.
+    result = replace(
+      val  = input
+      sub  = '|'
+      with = |\n|
+      occ  = 0 ).
+  ENDMETHOD.
+
+  METHOD convert_json_to_packument.
+
+    DATA(packument) = zcl_pacote=>convert_json_to_packument( test_json ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = packument
+      exp = test_packument ).
+
+  ENDMETHOD.
+
+  METHOD convert_packument_to_json.
+
+    DATA(json) = zcl_pacote=>convert_packument_to_json( test_packument ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = json
+      exp = test_json ).
+
+  ENDMETHOD.
 
 ENDCLASS.
