@@ -412,10 +412,10 @@ CLASS zcl_pacote IMPLEMENTATION.
         iv_val = zif_http_agent=>c_content_type-json ).
     ENDIF.
 
-    DATA(host) = zcl_url=>parse( url )->components-host.
+    DATA(components) = zcl_url=>parse( url )->components.
 
     " Get/set auth token
-    DATA(auth) = zcl_http_login_manager=>get( host ).
+    DATA(auth) = zcl_http_login_manager=>get( components-host ).
 
     IF auth IS NOT INITIAL.
       result->global_headers( )->set(
