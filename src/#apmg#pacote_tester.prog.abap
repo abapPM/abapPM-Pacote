@@ -4,7 +4,7 @@
 * Copyright 2024 apm.to Inc. <https://apm.to>
 * SPDX-License-Identifier: MIT
 ************************************************************************
-REPORT z_pacote_tester.
+REPORT /apmg/pacote_tester.
 
 SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME.
   PARAMETERS:
@@ -25,7 +25,7 @@ DATA result TYPE string.
 START-OF-SELECTION.
 
   TRY.
-      DATA(pacote) = zcl_pacote=>factory(
+      DATA(pacote) = /apmg/cl_pacote=>factory(
         registry = p_reg
         name     = p_name ).
 
@@ -40,6 +40,8 @@ START-OF-SELECTION.
             abbreviated = abap_true ).
         WHEN p_tgz.
           DATA(tarball) = pacote->tarball( p_vers ).
+        WHEN OTHERS.
+          ASSERT 0 = 1.
       ENDCASE.
     CATCH cx_root INTO DATA(error).
       cl_abap_browser=>show_html( html_string = error->get_text( ) ).

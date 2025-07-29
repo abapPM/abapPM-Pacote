@@ -4,8 +4,8 @@ CLASS ltcl_pacote DEFINITION FOR TESTING RISK LEVEL HARMLESS
   PRIVATE SECTION.
 
     DATA:
-      cut            TYPE REF TO zif_package_json ##NEEDED,
-      test_packument TYPE zif_types=>ty_packument,
+      cut            TYPE REF TO /apmg/if_package_json ##NEEDED,
+      test_packument TYPE /apmg/if_types=>ty_packument,
       test_json      TYPE string.
 
     METHODS setup.
@@ -17,12 +17,12 @@ CLASS ltcl_pacote DEFINITION FOR TESTING RISK LEVEL HARMLESS
         VALUE(result) TYPE string.
 
     METHODS:
-      convert_json_to_packument FOR TESTING RAISING zcx_error,
-      convert_packument_to_json FOR TESTING RAISING zcx_error.
+      convert_json_to_packument FOR TESTING RAISING /apmg/cx_error,
+      convert_packument_to_json FOR TESTING RAISING /apmg/cx_error.
 
 ENDCLASS.
 
-CLASS zcl_pacote DEFINITION LOCAL FRIENDS ltcl_pacote.
+CLASS /apmg/cl_pacote DEFINITION LOCAL FRIENDS ltcl_pacote.
 
 CLASS ltcl_pacote IMPLEMENTATION.
 
@@ -506,7 +506,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
 
   METHOD convert_json_to_packument.
 
-    DATA(packument) = zcl_pacote=>convert_json_to_packument( test_json ).
+    DATA(packument) = /apmg/cl_pacote=>convert_json_to_packument( test_json ).
 
     cl_abap_unit_assert=>assert_equals(
       act = packument
@@ -516,7 +516,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
 
   METHOD convert_packument_to_json.
 
-    DATA(json) = zcl_pacote=>convert_packument_to_json( test_packument ).
+    DATA(json) = /apmg/cl_pacote=>convert_packument_to_json( test_packument ).
 
     cl_abap_unit_assert=>assert_equals(
       act = json
