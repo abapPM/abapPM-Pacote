@@ -4,25 +4,25 @@ CLASS lcl_validate DEFINITION.
 
     CLASS-METHODS validate_single_values
       IMPORTING
-        !packument    TYPE zif_types=>ty_packument
+        !packument    TYPE /apmg/if_types=>ty_packument
       RETURNING
         VALUE(result) TYPE string_table.
 
     CLASS-METHODS validate_dist_tags
       IMPORTING
-        !packument    TYPE zif_types=>ty_packument
+        !packument    TYPE /apmg/if_types=>ty_packument
       RETURNING
         VALUE(result) TYPE string_table.
 
     CLASS-METHODS validate_times
       IMPORTING
-        !packument    TYPE zif_types=>ty_packument
+        !packument    TYPE /apmg/if_types=>ty_packument
       RETURNING
         VALUE(result) TYPE string_table.
 
     CLASS-METHODS validate_users
       IMPORTING
-        !packument    TYPE zif_types=>ty_packument
+        !packument    TYPE /apmg/if_types=>ty_packument
       RETURNING
         VALUE(result) TYPE string_table.
 
@@ -46,7 +46,7 @@ CLASS lcl_validate IMPLEMENTATION.
     LOOP AT packument-dist_tags INTO DATA(dist_tag).
       COLLECT dist_tag-key INTO values.
 
-      IF zcl_package_json_valid=>is_valid_version( dist_tag-value ) = abap_false.
+      IF /apmg/cl_package_json_valid=>is_valid_version( dist_tag-value ) = abap_false.
         INSERT |Invalid dist-tag version: { dist_tag-key } { dist_tag-value }| INTO TABLE result.
       ENDIF.
       IF NOT line_exists( packument-versions[ key = dist_tag-value ] ).

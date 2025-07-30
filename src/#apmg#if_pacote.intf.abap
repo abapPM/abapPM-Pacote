@@ -1,4 +1,4 @@
-INTERFACE zif_pacote PUBLIC.
+INTERFACE /apmg/if_pacote PUBLIC.
 
 
 ************************************************************************
@@ -12,17 +12,17 @@ INTERFACE zif_pacote PUBLIC.
 
   TYPES:
     BEGIN OF ty_pacote,
-      key       TYPE zif_persist_apm=>ty_key,
+      key       TYPE /apmg/if_persist_apm=>ty_key,
       name      TYPE string,
       json      TYPE string,
-      packument TYPE zif_types=>ty_packument,
-      instance  TYPE REF TO zif_pacote,
+      packument TYPE /apmg/if_types=>ty_packument,
+      instance  TYPE REF TO /apmg/if_pacote,
     END OF ty_pacote,
     ty_pacotes TYPE STANDARD TABLE OF ty_pacote WITH KEY key ##NEEDED.
 
   METHODS get
     RETURNING
-      VALUE(result) TYPE zif_types=>ty_packument.
+      VALUE(result) TYPE /apmg/if_types=>ty_packument.
 
   METHODS get_json
     RETURNING
@@ -32,23 +32,23 @@ INTERFACE zif_pacote PUBLIC.
     IMPORTING
       !version      TYPE string
     RETURNING
-      VALUE(result) TYPE zif_types=>ty_version.
+      VALUE(result) TYPE /apmg/if_types=>ty_version.
 
   METHODS set
     IMPORTING
-      !packument    TYPE zif_types=>ty_packument
+      !packument    TYPE /apmg/if_types=>ty_packument
     RETURNING
-      VALUE(result) TYPE REF TO zif_pacote
+      VALUE(result) TYPE REF TO /apmg/if_pacote
     RAISING
-      zcx_error.
+      /apmg/cx_error.
 
   METHODS set_json
     IMPORTING
       !json         TYPE string
     RETURNING
-      VALUE(result) TYPE REF TO zif_pacote
+      VALUE(result) TYPE REF TO /apmg/if_pacote
     RAISING
-      zcx_error.
+      /apmg/cx_error.
 
   METHODS exists
     RETURNING
@@ -56,17 +56,17 @@ INTERFACE zif_pacote PUBLIC.
 
   METHODS load
     RETURNING
-      VALUE(result) TYPE REF TO zif_pacote
+      VALUE(result) TYPE REF TO /apmg/if_pacote
     RAISING
-      zcx_error.
+      /apmg/cx_error.
 
   METHODS save
     RAISING
-      zcx_error.
+      /apmg/cx_error.
 
   METHODS delete
     RAISING
-      zcx_error.
+      /apmg/cx_error.
 
   METHODS manifest
     IMPORTING
@@ -76,7 +76,7 @@ INTERFACE zif_pacote PUBLIC.
     RETURNING
       VALUE(result) TYPE string
     RAISING
-      zcx_error.
+      /apmg/cx_error.
 
   METHODS packument
     IMPORTING
@@ -84,7 +84,7 @@ INTERFACE zif_pacote PUBLIC.
     RETURNING
       VALUE(result) TYPE string
     RAISING
-      zcx_error.
+      /apmg/cx_error.
 
   METHODS tarball
     IMPORTING
@@ -92,6 +92,6 @@ INTERFACE zif_pacote PUBLIC.
     RETURNING
       VALUE(result) TYPE xstring
     RAISING
-      zcx_error.
+      /apmg/cx_error.
 
 ENDINTERFACE.

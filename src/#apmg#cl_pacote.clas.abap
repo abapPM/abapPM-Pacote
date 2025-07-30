@@ -1,4 +1,4 @@
-CLASS zcl_pacote DEFINITION
+CLASS /apmg/cl_pacote DEFINITION
   PUBLIC
   FINAL
   CREATE PRIVATE.
@@ -11,7 +11,7 @@ CLASS zcl_pacote DEFINITION
 ************************************************************************
   PUBLIC SECTION.
 
-    INTERFACES zif_pacote.
+    INTERFACES /apmg/if_pacote.
 
     CLASS-METHODS class_constructor.
 
@@ -21,14 +21,14 @@ CLASS zcl_pacote DEFINITION
         !name         TYPE string
         !packument    TYPE string OPTIONAL
       RETURNING
-        VALUE(result) TYPE REF TO zif_pacote
+        VALUE(result) TYPE REF TO /apmg/if_pacote
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
     CLASS-METHODS injector
       IMPORTING
         !name TYPE string
-        !mock TYPE REF TO zif_pacote.
+        !mock TYPE REF TO /apmg/if_pacote.
 
     METHODS constructor
       IMPORTING
@@ -36,17 +36,17 @@ CLASS zcl_pacote DEFINITION
         !name      TYPE string
         !packument TYPE string OPTIONAL
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
     CLASS-METHODS get_packument_key
       IMPORTING
         !name         TYPE string
       RETURNING
-        VALUE(result) TYPE zif_persist_apm=>ty_key.
+        VALUE(result) TYPE /apmg/if_persist_apm=>ty_key.
 
     CLASS-METHODS get_packument_from_key
       IMPORTING
-        !key          TYPE zif_persist_apm=>ty_key
+        !key          TYPE /apmg/if_persist_apm=>ty_key
       RETURNING
         VALUE(result) TYPE string.
 
@@ -54,18 +54,18 @@ CLASS zcl_pacote DEFINITION
       IMPORTING
         !json         TYPE string
       RETURNING
-        VALUE(result) TYPE zif_types=>ty_packument
+        VALUE(result) TYPE /apmg/if_types=>ty_packument
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
     CLASS-METHODS convert_packument_to_json
       IMPORTING
-        !packument    TYPE zif_types=>ty_packument
+        !packument    TYPE /apmg/if_types=>ty_packument
         !is_complete  TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(result) TYPE string
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -75,55 +75,55 @@ CLASS zcl_pacote DEFINITION
     TYPES:
       BEGIN OF ty_instance,
         name     TYPE string,
-        instance TYPE REF TO zif_pacote,
+        instance TYPE REF TO /apmg/if_pacote,
       END OF ty_instance,
       ty_instances TYPE HASHED TABLE OF ty_instance WITH UNIQUE KEY name.
 
     CLASS-DATA:
-      db_persist TYPE REF TO zif_persist_apm,
+      db_persist TYPE REF TO /apmg/if_persist_apm,
       instances  TYPE ty_instances.
 
     DATA:
       registry TYPE string,
-      pacote   TYPE zif_pacote=>ty_pacote.
+      pacote   TYPE /apmg/if_pacote=>ty_pacote.
 
     METHODS get_agent
       IMPORTING
         !url          TYPE string
         !abbreviated  TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(result) TYPE REF TO zif_http_agent
+        VALUE(result) TYPE REF TO /apmg/if_http_agent
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
     METHODS request
       IMPORTING
         !url          TYPE string
         !abbreviated  TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(result) TYPE REF TO zif_http_response
+        VALUE(result) TYPE REF TO /apmg/if_http_response
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
     METHODS check_result
       IMPORTING
         !json TYPE string
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
     CLASS-METHODS check_packument
       IMPORTING
-        !packument TYPE zif_types=>ty_packument
+        !packument TYPE /apmg/if_types=>ty_packument
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
     CLASS-METHODS sort_packument
       IMPORTING
-        !packument    TYPE zif_types=>ty_packument
+        !packument    TYPE /apmg/if_types=>ty_packument
       RETURNING
-        VALUE(result) TYPE zif_types=>ty_packument
+        VALUE(result) TYPE /apmg/if_types=>ty_packument
       RAISING
-        zcx_error.
+        /apmg/cx_error.
 
     CLASS-METHODS write_request
       IMPORTING
@@ -135,16 +135,131 @@ ENDCLASS.
 
 
 
-CLASS zcl_pacote IMPLEMENTATION.
+CLASS /apmg/cl_pacote IMPLEMENTATION.
+
+
+  METHOD /apmg/if_pacote~delete.
+
+    db_persist->delete( pacote-key ).
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~exists.
+
+    TRY.
+        db_persist->load( pacote-key ).
+
+        result = abap_true.
+      CATCH /apmg/cx_error.
+        result = abap_false.
+    ENDTRY.
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~get.
+
+    result = pacote-packument.
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~get_json.
+
+    result = pacote-json.
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~get_version.
+
+    result = pacote-packument-versions[ key = version ].
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~load.
+
+    pacote-json      = db_persist->load( pacote-key )-value.
+    pacote-packument = convert_json_to_packument( pacote-json ).
+
+    result = me.
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~manifest.
+
+    result = request(
+      url         = |{ registry }/{ pacote-name }/{ version }{ write_request( write ) }|
+      abbreviated = abbreviated )->cdata( ).
+
+    check_result( result ).
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~packument.
+
+    result = request( |{ registry }/{ pacote-name }{ write_request( write ) }| )->cdata( ).
+
+    check_result( result ).
+
+    /apmg/if_pacote~set_json( result ).
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~save.
+
+    db_persist->save(
+      key   = pacote-key
+      value = pacote-json ).
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~set.
+
+    pacote-packument = packument.
+    pacote-json      = convert_packument_to_json( packument ).
+
+    result = me.
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~set_json.
+
+    pacote-json      = json.
+    pacote-packument = convert_json_to_packument( json ).
+
+    result = me.
+
+  ENDMETHOD.
+
+
+  METHOD /apmg/if_pacote~tarball.
+
+    DATA(response) = request( filename ).
+
+    IF response->is_ok( ) = abap_false.
+      check_result( response->cdata( ) ).
+    ELSE.
+      result = response->data( ).
+    ENDIF.
+
+  ENDMETHOD.
 
 
   METHOD check_packument.
 
     " packument has a lot of hoisted fields but no version
-    DATA(manifest) = CORRESPONDING zif_types=>ty_manifest( packument ).
+    DATA(manifest) = CORRESPONDING /apmg/if_types=>ty_manifest( packument ).
     manifest-version = '1.0.0'.
 
-    DATA(issues) = zcl_package_json_valid=>check( manifest ).
+    DATA(issues) = /apmg/cl_package_json_valid=>check( manifest ).
 
     INSERT LINES OF lcl_validate=>validate_single_values( packument ) INTO TABLE issues.
     INSERT LINES OF lcl_validate=>validate_dist_tags( packument ) INTO TABLE issues.
@@ -152,7 +267,7 @@ CLASS zcl_pacote IMPLEMENTATION.
     INSERT LINES OF lcl_validate=>validate_users( packument ) INTO TABLE issues.
 
     IF issues IS NOT INITIAL.
-      RAISE EXCEPTION TYPE zcx_error_text
+      RAISE EXCEPTION TYPE /apmg/cx_error_text
         EXPORTING
           text = |Invalid packument:\n{ concat_lines_of( table = issues sep = |\n| ) }|.
     ENDIF.
@@ -165,11 +280,11 @@ CLASS zcl_pacote IMPLEMENTATION.
     TRY.
         DATA(error_message) = zcl_ajson=>parse( json )->get_string( '/error' ).
       CATCH zcx_ajson_error INTO DATA(error).
-        RAISE EXCEPTION TYPE zcx_error_prev EXPORTING previous = error.
+        RAISE EXCEPTION TYPE /apmg/cx_error_prev EXPORTING previous = error.
     ENDTRY.
 
     IF error_message IS NOT INITIAL.
-      RAISE EXCEPTION TYPE zcx_error_text EXPORTING text = error_message.
+      RAISE EXCEPTION TYPE /apmg/cx_error_text EXPORTING text = error_message.
     ENDIF.
 
   ENDMETHOD.
@@ -177,7 +292,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD class_constructor.
 
-    db_persist = zcl_persist_apm=>get_instance( ).
+    db_persist = /apmg/cl_persist_apm=>get_instance( ).
 
   ENDMETHOD.
 
@@ -185,7 +300,7 @@ CLASS zcl_pacote IMPLEMENTATION.
   METHOD constructor.
 
     IF registry <> 'https://playground.abappm.com'.
-      RAISE EXCEPTION TYPE zcx_error_text
+      RAISE EXCEPTION TYPE /apmg/cx_error_text
         EXPORTING
           text = 'apm only works with playground.abappm.com. Stay tuned for offical registry :-)'.
     ENDIF.
@@ -202,8 +317,8 @@ CLASS zcl_pacote IMPLEMENTATION.
       pacote-packument = convert_json_to_packument( pacote-json ).
     ELSE.
       TRY.
-          zif_pacote~load( ).
-        CATCH zcx_error ##NO_HANDLER.
+          /apmg/if_pacote~load( ).
+        CATCH /apmg/cx_error ##NO_HANDLER.
       ENDTRY.
     ENDIF.
 
@@ -221,17 +336,17 @@ CLASS zcl_pacote IMPLEMENTATION.
         homepage    TYPE string,
         icon        TYPE string,
         BEGIN OF bugs,
-          url   TYPE zif_types=>ty_uri,
-          email TYPE zif_types=>ty_email,
+          url   TYPE /apmg/if_types=>ty_uri,
+          email TYPE /apmg/if_types=>ty_email,
         END OF bugs,
         license     TYPE string,
         keywords    TYPE string_table,
         main        TYPE string,
         man         TYPE string_table,
-        author      TYPE zif_types=>ty_person,
+        author      TYPE /apmg/if_types=>ty_person,
         BEGIN OF repository,
           type      TYPE string,
-          url       TYPE zif_types=>ty_uri,
+          url       TYPE /apmg/if_types=>ty_uri,
           directory TYPE string,
         END OF repository,
         _id         TYPE string,
@@ -241,18 +356,18 @@ CLASS zcl_pacote IMPLEMENTATION.
 
     DATA:
       json_partial TYPE ty_packument_partial,
-      generic      TYPE zif_types=>ty_generic,
-      time         TYPE zif_types=>ty_time,
-      person       TYPE zif_types=>ty_person,
-      user         TYPE zif_types=>ty_user,
-      version      TYPE zif_types=>ty_version,
-      attachment   TYPE zif_types=>ty_attachment,
-      packument    TYPE zif_types=>ty_packument.
+      generic      TYPE /apmg/if_types=>ty_generic,
+      time         TYPE /apmg/if_types=>ty_time,
+      person       TYPE /apmg/if_types=>ty_person,
+      user         TYPE /apmg/if_types=>ty_user,
+      version      TYPE /apmg/if_types=>ty_version,
+      attachment   TYPE /apmg/if_types=>ty_attachment,
+      packument    TYPE /apmg/if_types=>ty_packument.
 
     TRY.
         DATA(ajson) = zcl_ajson=>parse( json
-          )->map( zcl_ajson_extensions=>from_camel_case_underscore( )
-          )->to_abap_corresponding_only( ).
+          )->to_abap_corresponding_only(
+          )->map( /apmg/cl_ajson_extensions=>from_camel_case_underscore( ) ).
 
         ajson->to_abap( IMPORTING ev_container = json_partial ).
 
@@ -292,7 +407,7 @@ CLASS zcl_pacote IMPLEMENTATION.
         LOOP AT ajson->members( '/versions' ) INTO version-key.
           DATA(ajson_version) = ajson->slice( '/versions/' && version-key ).
           " this also validates the version manifest
-          version-version = zcl_package_json=>convert_json_to_manifest( ajson_version->stringify( ) ).
+          version-version = /apmg/cl_package_json=>convert_json_to_manifest( ajson_version->stringify( ) ).
           INSERT version INTO TABLE packument-versions.
         ENDLOOP.
 
@@ -301,7 +416,7 @@ CLASS zcl_pacote IMPLEMENTATION.
         result = sort_packument( packument ).
 
       CATCH zcx_ajson_error INTO DATA(error).
-        RAISE EXCEPTION TYPE zcx_error_prev EXPORTING previous = error.
+        RAISE EXCEPTION TYPE /apmg/cx_error_prev EXPORTING previous = error.
     ENDTRY.
 
   ENDMETHOD.
@@ -316,8 +431,9 @@ CLASS zcl_pacote IMPLEMENTATION.
             iv_path = '/'
             iv_val  = packument
           )->map( zcl_ajson_mapping=>create_compound_mapper(
-            ii_mapper1 = zcl_ajson_mapping=>create_rename( VALUE #( ( from = 'dist_tags' to = 'dist-tags' ) ) )
-            ii_mapper2 = zcl_ajson_extensions=>to_camel_case_underscore( ) ) ).
+            ii_mapper1 = zcl_ajson_mapping=>create_rename(
+                           VALUE #( ( from = 'dist_tags' to = 'dist-tags' ) ) )
+            ii_mapper2 = /apmg/cl_ajson_extensions=>to_camel_case_underscore( ) ) ).
 
         " Transpose dist-tags, times, users, versions... from arrays to objects
         ajson->setx( '/dist-tags:{ }' ).
@@ -357,7 +473,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
         ajson->setx( '/versions:{ }' ).
         LOOP AT packument-versions ASSIGNING FIELD-SYMBOL(<version>).
-          DATA(version_json) = zcl_package_json=>convert_manifest_to_json(
+          DATA(version_json) = /apmg/cl_package_json=>convert_manifest_to_json(
             manifest    = <version>-version
             is_complete = is_complete ).
 
@@ -371,12 +487,12 @@ CLASS zcl_pacote IMPLEMENTATION.
         ENDLOOP.
 
         IF is_complete = abap_false.
-          ajson = ajson->filter( zcl_ajson_extensions=>filter_empty_zero_null( ) ).
+          ajson = ajson->filter( /apmg/cl_ajson_extensions=>filter_empty_zero_null( ) ).
         ENDIF.
 
         result = ajson->stringify( 2 ).
       CATCH zcx_ajson_error INTO DATA(error).
-        RAISE EXCEPTION TYPE zcx_error_prev EXPORTING previous = error.
+        RAISE EXCEPTION TYPE /apmg/cx_error_prev EXPORTING previous = error.
     ENDTRY.
 
   ENDMETHOD.
@@ -388,7 +504,7 @@ CLASS zcl_pacote IMPLEMENTATION.
     IF sy-subrc = 0.
       result = <instance>-instance.
     ELSE.
-      result = NEW zcl_pacote(
+      result = NEW /apmg/cl_pacote(
         registry  = registry
         name      = name
         packument = packument ).
@@ -404,26 +520,26 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD get_agent.
 
-    result = zcl_http_agent=>create( ).
+    result = /apmg/cl_http_agent=>create( ).
 
     IF abbreviated = abap_true.
       result->global_headers( )->set(
-        iv_key = zif_http_agent=>c_header-accept
+        iv_key = /apmg/if_http_agent=>c_header-accept
         iv_val = c_abbreviated_json ).
     ELSE.
       result->global_headers( )->set(
-        iv_key = zif_http_agent=>c_header-accept
-        iv_val = zif_http_agent=>c_content_type-json ).
+        iv_key = /apmg/if_http_agent=>c_header-accept
+        iv_val = /apmg/if_http_agent=>c_content_type-json ).
     ENDIF.
 
-    DATA(components) = zcl_url=>parse( url )->components.
+    DATA(components) = /apmg/cl_url=>parse( url )->components.
 
     " Get/set auth token
-    DATA(auth) = zcl_http_login_manager=>get( components-host ).
+    DATA(auth) = /apmg/cl_http_login_manager=>get( components-host ).
 
     IF auth IS NOT INITIAL.
       result->global_headers( )->set(
-        iv_key = zif_http_agent=>c_header-authorization
+        iv_key = /apmg/if_http_agent=>c_header-authorization
         iv_val = auth ).
     ENDIF.
 
@@ -440,7 +556,7 @@ CLASS zcl_pacote IMPLEMENTATION.
 
   METHOD get_packument_key.
 
-    result = |{ zif_persist_apm=>c_key_type-packument }:{ to_upper( name ) }|.
+    result = |{ /apmg/if_persist_apm=>c_key_type-packument }:{ to_upper( name ) }|.
 
   ENDMETHOD.
 
@@ -495,121 +611,6 @@ CLASS zcl_pacote IMPLEMENTATION.
 
     IF write = abap_true.
       result = '?write=true'.
-    ENDIF.
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~delete.
-
-    db_persist->delete( pacote-key ).
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~exists.
-
-    TRY.
-        db_persist->load( pacote-key ).
-
-        result = abap_true.
-      CATCH zcx_error.
-        result = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~get.
-
-    result = pacote-packument.
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~get_json.
-
-    result = pacote-json.
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~get_version.
-
-    result = pacote-packument-versions[ key = version ].
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~load.
-
-    pacote-json      = db_persist->load( pacote-key )-value.
-    pacote-packument = convert_json_to_packument( pacote-json ).
-
-    result = me.
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~manifest.
-
-    result = request(
-      url         = |{ registry }/{ pacote-name }/{ version }{ write_request( write ) }|
-      abbreviated = abbreviated )->cdata( ).
-
-    check_result( result ).
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~packument.
-
-    result = request( |{ registry }/{ pacote-name }{ write_request( write ) }| )->cdata( ).
-
-    check_result( result ).
-
-    zif_pacote~set_json( result ).
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~save.
-
-    db_persist->save(
-      key   = pacote-key
-      value = pacote-json ).
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~set.
-
-    pacote-packument = packument.
-    pacote-json      = convert_packument_to_json( packument ).
-
-    result = me.
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~set_json.
-
-    pacote-json      = json.
-    pacote-packument = convert_json_to_packument( json ).
-
-    result = me.
-
-  ENDMETHOD.
-
-
-  METHOD zif_pacote~tarball.
-
-    DATA(response) = request( filename ).
-
-    IF response->is_ok( ) = abap_false.
-      check_result( response->cdata( ) ).
-    ELSE.
-      result = response->data( ).
     ENDIF.
 
   ENDMETHOD.
