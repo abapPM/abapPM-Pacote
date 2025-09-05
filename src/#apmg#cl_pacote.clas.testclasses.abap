@@ -35,13 +35,9 @@ CLASS ltcl_pacote IMPLEMENTATION.
       && `|    "latest": "1.0.0"`
       && `|  },`
       && `|  "time": {`
-* TODO: needs timestampl support in AJSON
-*      && `|    "1.0.0": "2024-05-02T12:17:47.805Z",`
-*      && `|    "created": "2024-05-02T17:59:06.250Z",`
-*      && `|    "modified": "2024-11-10T19:51:04.774Z"`
-      && `|    "1.0.0": "2024-05-02T12:17:47Z",`
-      && `|    "created": "2024-05-02T17:59:06Z",`
-      && `|    "modified": "2024-11-10T19:51:04Z"`
+      && `|    "1.0.0": "2024-05-02T12:17:47.805Z",`
+      && `|    "created": "2024-05-02T17:59:06.251Z",`
+      && `|    "modified": "2024-11-10T19:51:04.774Z"`
       && `|  },`
       && `|  "versions": {`
       && `|    "1.0.0": {`
@@ -226,25 +222,24 @@ CLASS ltcl_pacote IMPLEMENTATION.
           value                      = `1.0.0`
         )
       )
-* TODO: needs timestampl support in AJSON
       time                           = VALUE #(
         (
           key                        = `1.0.0`
-          timestamp                  = 20240502121747
+          timestamp                  = '20240502121747.805'
         )
         (
           key                        = `created`
-          timestamp                  = 20240502175906
+          timestamp                  = '20240502175906.251'
         )
         (
           key                        = `modified`
-          timestamp                  = 20241110195104
+          timestamp                  = '20241110195104.774'
         )
       )
       versions                       = VALUE #(
         (
           key                        = `1.0.0`
-          version                    = VALUE #(
+          manifest                    = VALUE #(
             name                     = `@registrytest/package`
             version                  = `1.0.0`
             description              = `This is an example package`
