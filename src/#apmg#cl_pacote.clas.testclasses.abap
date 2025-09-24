@@ -155,7 +155,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
       && `|          }`
       && `|        ]`
       && `|      },`
-      && `|      "deprecated": true,`
+      && `|      "deprecated": "This version is deprecated",`
       && `|      "_id": "@registrytest/package@1.0.0",`
       && `|      "_abapVersion": "7.54.0",`
       && `|      "_apmVersion": "1.0.0"`
@@ -414,7 +414,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
                 )
               )
             )
-            deprecated               = abap_true
+            deprecated               = `This version is deprecated`
             _id                      = `@registrytest/package@1.0.0`
             _abap_version            = `7.54.0`
             _apm_version             = `1.0.0`

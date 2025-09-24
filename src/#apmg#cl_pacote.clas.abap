@@ -60,10 +60,11 @@ CLASS /apmg/cl_pacote DEFINITION
 
     CLASS-METHODS convert_packument_to_json
       IMPORTING
-        !packument    TYPE /apmg/if_types=>ty_packument
-        !is_complete  TYPE abap_bool DEFAULT abap_false
+        !packument     TYPE /apmg/if_types=>ty_packument
+        !is_complete   TYPE abap_bool DEFAULT abap_false
+        !is_deprecated TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(result) TYPE string
+        VALUE(result)  TYPE string
       RAISING
         /apmg/cx_error.
 
@@ -466,8 +467,9 @@ CLASS /apmg/cl_pacote IMPLEMENTATION.
         ajson->setx( '/versions:{ }' ).
         LOOP AT packument-versions ASSIGNING FIELD-SYMBOL(<version>).
           DATA(version_json) = /apmg/cl_package_json=>convert_manifest_to_json(
-            manifest    = <version>-manifest
-            is_complete = is_complete ).
+            manifest      = <version>-manifest
+            is_complete   = is_complete
+            is_deprecated = is_deprecated ).
 
           DATA(ajson_version) = zcl_ajson=>parse(
             iv_json            = version_json
@@ -478,7 +480,9 @@ CLASS /apmg/cl_pacote IMPLEMENTATION.
             iv_val  = ajson_version ).
         ENDLOOP.
 
-        IF is_complete = abap_false.
+        IF is_deprecated = abap_true.
+          ajson = ajson->filter( /apmg/cl_ajson_extensions=>filter_deprecated( ) ).
+        ELSEIF is_complete = abap_false.
           ajson = ajson->filter( /apmg/cl_ajson_extensions=>filter_empty_zero_null( ) ).
         ENDIF.
 
