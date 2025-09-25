@@ -4,7 +4,7 @@ CLASS /apmg/cl_pacote DEFINITION
   CREATE PRIVATE.
 
 ************************************************************************
-* Pacote X
+* Pacote
 *
 * Copyright 2024 apm.to Inc. <https://apm.to>
 * SPDX-License-Identifier: MIT
