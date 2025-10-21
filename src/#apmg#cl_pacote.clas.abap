@@ -300,12 +300,6 @@ CLASS /apmg/cl_pacote IMPLEMENTATION.
 
   METHOD constructor.
 
-    IF registry <> 'https://playground.abappm.com'.
-      RAISE EXCEPTION TYPE /apmg/cx_error_text
-        EXPORTING
-          text = 'apm only works with playground.abappm.com. Stay tuned for offical registry :-)'.
-    ENDIF.
-
     me->registry = registry.
 
     pacote-key  = get_packument_key( name ).
