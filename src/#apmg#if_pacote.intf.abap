@@ -34,6 +34,12 @@ INTERFACE /apmg/if_pacote PUBLIC.
     RETURNING
       VALUE(result) TYPE /apmg/if_types=>ty_manifest.
 
+  METHODS get_versions
+    IMPORTING
+      !with_deprecated TYPE abap_bool DEFAULT abap_false
+    RETURNING
+      VALUE(result)    TYPE /apmg/if_types=>ty_versions.
+
   METHODS set
     IMPORTING
       !packument    TYPE /apmg/if_types=>ty_packument
