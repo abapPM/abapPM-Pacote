@@ -169,7 +169,7 @@ CLASS /apmg/cl_pacote IMPLEMENTATION.
 
   METHOD /apmg/if_pacote~get_dist_tags.
 
-     result = pacote-packument-dist_tags.
+    result = pacote-packument-dist_tags.
 
   ENDMETHOD.
 
