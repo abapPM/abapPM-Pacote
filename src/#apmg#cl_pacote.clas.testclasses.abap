@@ -51,6 +51,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
       && `|        "test"`
       && `|      ],`
       && `|      "homepage": "https://registrytest.org",`
+      && `|      "changelog": "https://registrytest.org/CHANGELOG.md",`
       && `|      "icon": "registrytest.svg",`
       && `|      "bugs": {`
       && `|        "url": "https://github.com/registrytest/package/issues",`
@@ -108,7 +109,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
       && `|      "dependencies": {`
       && `|        "express": "^4.19.2",`
       && `|        "lodash": "^4.17.21",`
-      && `|        "semver": "~7.6.0"`
+      && `|        "semver": "7.6.0"`
       && `|      },`
       && `|      "devDependencies": {`
       && `|        "eslint": "^9.1.1",`
@@ -256,6 +257,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
               )
             )
             homepage                 = `https://registrytest.org`
+            changelog                = `https://registrytest.org/CHANGELOG.md`
             icon                     = `registrytest.svg`
             bugs                     = VALUE #(
               url                    = `https://github.com/registrytest/package/issues`
@@ -334,7 +336,7 @@ CLASS ltcl_pacote IMPLEMENTATION.
               )
               (
                 key                  = `semver`
-                range                = `~7.6.0`
+                range                = `7.6.0`
               )
             )
             dev_dependencies         = VALUE #(
