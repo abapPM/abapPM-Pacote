@@ -14,6 +14,8 @@
 
 Fetch package manifests and tarballs from the apm registry
 
+apm is a *package manager* and a *registry* for ABAP applications and modules.
+
 NO WARRANTIES, [MIT License](LICENSE)
 
 ## Usage
